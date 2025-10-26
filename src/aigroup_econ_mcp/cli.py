@@ -24,7 +24,8 @@ def cli(port: int, host: str, transport: str, debug: bool, mount_path: str, vers
     
     # 处理版本标志
     if version:
-        click.echo("aigroup-econ-mcp v0.1.0", err=True)
+        from . import __version__
+        click.echo(f"aigroup-econ-mcp v{__version__}", err=True)
         click.echo("Professional econometrics MCP tool", err=True)
         click.echo("Author: AIGroup", err=True)
         sys.exit(0)
@@ -41,8 +42,12 @@ def cli(port: int, host: str, transport: str, debug: bool, mount_path: str, vers
     if transport == 'stdio':
         # stdio模式直接运行，不输出任何日志到stdout（MCP协议通信）
         # 所有日志输出到stderr
+        from . import __version__
+        click.echo(f"[INFO] aigroup-econ-mcp v{__version__} starting...", err=True)
+        click.echo(f"[INFO] Transport: stdio (MCP protocol)", err=True)
         if debug:
-            click.echo(f"[DEBUG] Starting in stdio mode", err=True)
+            click.echo(f"[DEBUG] Debug mode enabled", err=True)
+        click.echo(f"[INFO] Server ready. Waiting for MCP client connection...", err=True)
         mcp_server.run(transport='stdio')
         
     elif transport == 'streamable-http':

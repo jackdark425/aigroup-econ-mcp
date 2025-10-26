@@ -301,7 +301,7 @@ async def ols_regression(
 - 建议使用有意义的名称以便解释结果"""
         )
     ] = None
-) -> CallToolResult:
+) -> Annotated[CallToolResult, OLSRegressionResult]:
     """执行普通最小二乘法(OLS)回归分析
     
     📊 功能说明：
@@ -575,7 +575,7 @@ async def time_series_analysis(
 - 日均气温数据"""
         )
     ]
-) -> CallToolResult:
+) -> Annotated[CallToolResult, TimeSeriesStatsResult]:
     """时间序列统计分析
     
     📊 功能说明：
