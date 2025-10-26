@@ -637,8 +637,10 @@ async def time_series_analysis(
         adf_result = stattools.adfuller(data)
 
         # 自相关和偏自相关函数
-        acf_values = stattools.acf(data, nlags=min(20, len(data)-1))
-        pacf_values = stattools.pacf(data, nlags=min(20, len(data)-1))
+        # statsmodels要求PACF的nlags不能超过样本大小的50%
+        max_nlags = min(20, len(data)-1, len(data)//2)
+        acf_values = stattools.acf(data, nlags=max_nlags)
+        pacf_values = stattools.pacf(data, nlags=max_nlags)
 
         # 转换numpy类型为Python原生类型
         result = TimeSeriesStatsResult(
