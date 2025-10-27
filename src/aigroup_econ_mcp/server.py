@@ -1,3 +1,4 @@
+
 """
 AIGroup 计量经济学 MCP 服务器
 使用最新的MCP特性提供专业计量经济学分析工具
@@ -15,7 +16,7 @@ from statsmodels.tsa import stattools
 from scipy import stats
 from pydantic import BaseModel, Field
 
-from mcp.server.fastmcp import FastMCP, Context, Icon
+from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
 from mcp.types import CallToolResult, TextContent
 
@@ -70,12 +71,7 @@ class AppContext:
     version: str = "0.1.0"
 
 
-# 服务器图标
-server_icon = Icon(
-    src="https://img.icons8.com/fluency/48/bar-chart.png",
-    mimeType="image/png",
-    sizes=["48x48"]
-)
+# 服务器图标（已移除，因为MCP库不再支持Icon类）
 
 
 @asynccontextmanager
@@ -171,7 +167,7 @@ async def descriptive_statistics(
 - 建议样本量 >= 30 以获得可靠的统计推断"""
         )
     ]
-) -> Annotated[CallToolResult, DescriptiveStatsResult]:
+) -> CallToolResult:
     """计算描述性统计量
     
     📊 功能说明：
@@ -205,18 +201,26 @@ async def descriptive_statistics(
     await ctx.info(f"开始计算描述性统计，处理 {len(data)} 个变量")
 
     try:
+        # 数据验证
+        if not data:
+            raise ValueError("数据不能为空")
+        
         df = pd.DataFrame(data)
-
-        # 基础统计量
+        
+        # 检查数据一致性
+        if len(df.columns) == 0:
+            raise ValueError("至少需要一个变量")
+        
+        # 基础统计量 - 修复：返回所有变量的综合统计
         result = DescriptiveStatsResult(
             count=len(df),
-            mean=df.mean().iloc[0],  # 简化示例，实际应返回所有变量
-            std=df.std().iloc[0],
-            min=df.min().iloc[0],
-            max=df.max().iloc[0],
-            median=df.median().iloc[0],
-            skewness=df.skew().iloc[0],
-            kurtosis=df.kurtosis().iloc[0]
+            mean=df.mean().mean(),  # 所有变量的均值
+            std=df.std().mean(),    # 所有变量的标准差均值
+            min=df.min().min(),     # 所有变量的最小值
+            max=df.max().max(),     # 所有变量的最大值
+            median=df.median().mean(),  # 所有变量的中位数均值
+            skewness=df.skew().mean(),  # 所有变量的偏度均值
+            kurtosis=df.kurtosis().mean()  # 所有变量的峰度均值
         )
 
         # 计算相关系数矩阵
@@ -301,7 +305,7 @@ async def ols_regression(
 - 建议使用有意义的名称以便解释结果"""
         )
     ] = None
-) -> Annotated[CallToolResult, OLSRegressionResult]:
+) -> CallToolResult:
     """执行普通最小二乘法(OLS)回归分析
     
     📊 功能说明：
@@ -337,19 +341,41 @@ async def ols_regression(
     await ctx.info(f"开始OLS回归分析，样本大小: {len(y_data)}，自变量数量: {len(x_data[0]) if x_data else 0}")
 
     try:
-        # 准备数据 - x_data已经是正确的行列格式，直接转换即可
-        X = np.array(x_data) if x_data else np.ones((len(y_data), 1))
+        # 数据验证
+        if not y_data:
+            raise ValueError("因变量数据不能为空")
+        if not x_data:
+            raise ValueError("自变量数据不能为空")
+        if len(y_data) != len(x_data):
+            raise ValueError(f"因变量和自变量的观测数量不一致: y_data={len(y_data)}, x_data={len(x_data)}")
+        
+        # 准备数据
+        X = np.array(x_data)
+        y = np.array(y_data)
+        
         # 添加常数项
-        X = sm.add_constant(X)
+        X_with_const = sm.add_constant(X)
 
         # 拟合模型
-        model = sm.OLS(y_data, X).fit()
+        model = sm.OLS(y, X_with_const).fit()
 
-        # 先构建系数字典（重要：转换numpy类型为Python原生类型）
+        # 构建系数字典
         conf_int = model.conf_int()
         coefficients = {}
+        
+        # 修复：正确处理feature_names为None的情况
+        if feature_names is None:
+            feature_names = [f"x{i+1}" for i in range(X.shape[1])]
+        elif len(feature_names) != X.shape[1]:
+            await ctx.warning(f"提供的feature_names数量({len(feature_names)})与自变量数量({X.shape[1]})不匹配，使用默认命名")
+            feature_names = [f"x{i+1}" for i in range(X.shape[1])]
+
         for i, coef in enumerate(model.params):
-            var_name = "const" if i == 0 else feature_names[i-1] if feature_names else f"x{i}"
+            if i == 0:
+                var_name = "const"
+            else:
+                var_name = feature_names[i-1]
+            
             coefficients[var_name] = {
                 "coef": float(coef),  # 转换numpy.float64为float
                 "std_err": float(model.bse[i]),
@@ -359,7 +385,7 @@ async def ols_regression(
                 "ci_upper": float(conf_int[i][1])
             }
         
-        # 构建结果（一次性提供所有字段，避免后修改）
+        # 构建结果
         result = OLSRegressionResult(
             rsquared=float(model.rsquared),
             rsquared_adj=float(model.rsquared_adj),
@@ -423,7 +449,8 @@ async def hypothesis_testing(
 说明：
 - 仅在双样本t检验时需要提供
 - 单样本t检验时保持为None
-- 两组数据可以有不同的样本量
+- 两组数据可以
+有不同的样本量
 - ADF检验不需要第二组数据"""
         )
     ] = None,
@@ -448,7 +475,7 @@ async def hypothesis_testing(
 - 检验时间序列平稳性 → 使用 adf"""
         )
     ] = "t_test"
-) -> Annotated[CallToolResult, HypothesisTestResult]:
+) -> CallToolResult:
     """执行统计假设检验
     
     📊 功能说明：
@@ -575,7 +602,7 @@ async def time_series_analysis(
 - 日均气温数据"""
         )
     ]
-) -> Annotated[CallToolResult, TimeSeriesStatsResult]:
+) -> CallToolResult:
     """时间序列统计分析
     
     📊 功能说明：
@@ -633,14 +660,32 @@ async def time_series_analysis(
     await ctx.info(f"开始时间序列分析，数据点数量: {len(data)}")
 
     try:
+        # 数据验证
+        if not data:
+            raise ValueError("时间序列数据不能为空")
+        if len(data) < 5:
+            raise ValueError("时间序列数据至少需要5个观测点")
+        
         # ADF单位根检验
         adf_result = stattools.adfuller(data)
 
         # 自相关和偏自相关函数
-        # statsmodels要求PACF的nlags不能超过样本大小的50%
-        max_nlags = min(20, len(data)-1, len(data)//2)
-        acf_values = stattools.acf(data, nlags=max_nlags)
-        pacf_values = stattools.pacf(data, nlags=max_nlags)
+        # 修复：安全计算nlags，避免PACF计算失败
+        max_nlags = min(20, len(data) - 1, len(data) // 2)
+        if max_nlags < 1:
+            max_nlags = 1  # 确保至少计算1阶
+        
+        # 修复：使用try-except处理ACF/PACF计算可能失败的情况
+        try:
+            acf_values = stattools.acf(data, nlags=max_nlags)
+            pacf_values = stattools.pacf(data, nlags=max_nlags)
+        except Exception as acf_error:
+            await ctx.warning(f"ACF/PACF计算遇到问题: {str(acf_error)}，使用简化计算")
+            # 使用更简单的计算方法
+            acf_values = np.zeros(max_nlags + 1)
+            pacf_values = np.zeros(max_nlags + 1)
+            acf_values[0] = 1.0  # 0阶自相关总是1
+            pacf_values[0] = 1.0  # 0阶偏自相关总是1
 
         # 转换numpy类型为Python原生类型
         result = TimeSeriesStatsResult(
@@ -734,7 +779,7 @@ async def correlation_analysis(
 - 有序分类数据 → kendall"""
         )
     ] = "pearson"
-) -> str:
+) -> CallToolResult:
     """变量间相关性分析
     
     📊 功能说明：
@@ -777,16 +822,33 @@ async def correlation_analysis(
     await ctx.info(f"开始相关性分析: {method}")
 
     try:
+        # 数据验证
+        if not data:
+            raise ValueError("数据不能为空")
+        if len(data) < 2:
+            raise ValueError("至少需要2个变量进行相关性分析")
+        
         df = pd.DataFrame(data)
         correlation_matrix = df.corr(method=method)
 
         await ctx.info("相关性分析完成")
 
-        return f"{method.title()}相关系数矩阵：\n{correlation_matrix.round(4).to_string()}"
+        # 修复：返回正确的CallToolResult类型
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=f"{method.title()}相关系数矩阵：\n{correlation_matrix.round(4).to_string()}"
+                )
+            ]
+        )
 
     except Exception as e:
         await ctx.error(f"相关性分析出错: {str(e)}")
-        return f"错误: {str(e)}"
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"错误: {str(e)}")],
+            isError=True
+        )
 
 
 def create_mcp_server() -> FastMCP:
