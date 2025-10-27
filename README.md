@@ -34,7 +34,7 @@ uvx aigroup-econ-mcp --transport streamable-http --host 0.0.0.0 --port 8000
 
 ```bash
 # 克隆项目
-git clone https://github.com/aigroup/aigroup-econ-mcp
+git clone https://github.com/jackdark425/aigroup-econ-mcp
 cd aigroup-econ-mcp
 
 # 开发模式运行
@@ -44,20 +44,7 @@ uv run aigroup-econ-mcp --port 8000 --debug
 uvx -p . aigroup-econ-mcp
 ```
 
-## 与Claude Desktop集成
 
-在Claude Desktop的配置文件中添加：
-
-```json
-{
-  "mcpServers": {
-    "aigroup-econ-mcp": {
-      "command": "uvx",
-      "args": ["aigroup-econ-mcp", "--transport", "stdio"]
-    }
-  }
-}
-```
 ## 与RooCode集成
 
 在RooCode的MCP配置文件中添加：
