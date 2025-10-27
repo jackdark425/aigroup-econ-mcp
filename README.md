@@ -58,6 +58,28 @@ uvx -p . aigroup-econ-mcp
   }
 }
 ```
+## 与RooCode集成
+
+在RooCode的MCP配置文件中添加：
+
+```json
+"aigroup-econ-mcp": {
+  "command": "uvx",
+  "args": [
+    "aigroup-econ-mcp"
+  ],
+  "alwaysAllow": [
+    "descriptive_statistics",
+    "ols_regression",
+    "hypothesis_testing",
+    "time_series_analysis",
+    "correlation_analysis"
+  ],
+  "disabled": true
+}
+```
+
+## 使用示例
 
 ## 使用示例
 
