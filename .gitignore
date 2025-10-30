@@ -249,3 +249,5 @@ exports/
 *.json
 !pyproject.toml
 !README.md
+# PyPI configuration with API tokens
+.pypirc
