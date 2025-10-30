@@ -850,6 +850,400 @@ async def correlation_analysis(
             isError=True
         )
 
+# 导入面板数据分析工具
+from .tools.panel_data import (
+    FixedEffectsResult,
+    RandomEffectsResult,
+    HausmanTestResult,
+    PanelUnitRootResult,
+    fixed_effects_model,
+    random_effects_model,
+    hausman_test,
+    panel_unit_root_test as panel_unit_root_test_impl
+)
+
+# 导入高级时间序列分析工具
+from .tools.time_series import (
+    VARModelResult,
+    VECMModelResult,
+    GARCHModelResult,
+    StateSpaceModelResult,
+    var_model,
+    vecm_model,
+    garch_model,
+    state_space_model,
+    variance_decomposition
+)
+
+# 导入机器学习工具
+from .tools.machine_learning import (
+    RandomForestResult,
+    GradientBoostingResult,
+    RegularizedRegressionResult,
+    CrossValidationResult,
+    FeatureImportanceResult,
+    random_forest_regression,
+    gradient_boosting_regression,
+    lasso_regression,
+    ridge_regression,
+    cross_validation,
+    feature_importance_analysis
+)
+
+
+# ============================================================================
+# 面板数据分析工具
+# ============================================================================
+
+@mcp.tool()
+async def panel_fixed_effects(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    entity_ids: Annotated[List[str], Field(description="个体标识符")],
+    time_periods: Annotated[List[str], Field(description="时间标识符")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="自变量名称")] = None,
+    entity_effects: Annotated[bool, Field(default=True, description="是否包含个体效应")] = True,
+    time_effects: Annotated[bool, Field(default=False, description="是否包含时间效应")] = False
+) -> CallToolResult:
+    """固定效应模型分析"""
+    await ctx.info(f"开始固定效应模型分析，样本大小: {len(y_data)}")
+    try:
+        result = fixed_effects_model(y_data, x_data, entity_ids, time_periods, feature_names, entity_effects, time_effects)
+        await ctx.info("固定效应模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"固定效应模型: R²={result.rsquared:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"固定效应模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def panel_random_effects(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    entity_ids: Annotated[List[str], Field(description="个体标识符")],
+    time_periods: Annotated[List[str], Field(description="时间标识符")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="自变量名称")] = None,
+    entity_effects: Annotated[bool, Field(default=True, description="是否包含个体效应")] = True,
+    time_effects: Annotated[bool, Field(default=False, description="是否包含时间效应")] = False
+) -> CallToolResult:
+    """随机效应模型分析"""
+    await ctx.info(f"开始随机效应模型分析，样本大小: {len(y_data)}")
+    try:
+        result = random_effects_model(y_data, x_data, entity_ids, time_periods, feature_names, entity_effects, time_effects)
+        await ctx.info("随机效应模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"随机效应模型: R²={result.rsquared:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"随机效应模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def panel_hausman_test(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    entity_ids: Annotated[List[str], Field(description="个体标识符")],
+    time_periods: Annotated[List[str], Field(description="时间标识符")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="自变量名称")] = None
+) -> CallToolResult:
+    """Hausman检验"""
+    await ctx.info(f"开始Hausman检验，样本大小: {len(y_data)}")
+    try:
+        result = hausman_test(y_data, x_data, entity_ids, time_periods, feature_names)
+        await ctx.info("Hausman检验完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Hausman检验: p={result.p_value:.4f}, 建议={result.recommendation}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"Hausman检验出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def panel_unit_root_test(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[List[float], Field(description="面板数据序列")],
+    entity_ids: Annotated[List[str], Field(description="个体标识符")],
+    time_periods: Annotated[List[str], Field(description="时间标识符")],
+    test_type: Annotated[str, Field(default="levinlin", description="检验类型")] = "levinlin"
+) -> CallToolResult:
+    """面板单位根检验"""
+    await ctx.info(f"开始面板单位根检验: {test_type}")
+    try:
+        result = panel_unit_root_test_impl(data, entity_ids, time_periods, test_type)
+        await ctx.info("面板单位根检验完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"面板单位根检验: {'平稳' if result.stationary else '非平稳'}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"面板单位根检验出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+# ============================================================================
+# 高级时间序列分析工具
+# ============================================================================
+
+@mcp.tool()
+async def var_model_analysis(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[Dict[str, List[float]], Field(description="多变量时间序列数据")],
+    max_lags: Annotated[int, Field(default=5, description="最大滞后阶数")] = 5,
+    ic: Annotated[str, Field(default="aic", description="信息准则")] = "aic"
+) -> CallToolResult:
+    """VAR模型分析"""
+    await ctx.info(f"开始VAR模型分析，变量数量: {len(data)}")
+    try:
+        result = var_model(data, max_lags=max_lags, ic=ic)
+        await ctx.info("VAR模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"VAR模型: 滞后阶数={result.order}, AIC={result.aic:.2f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"VAR模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def vecm_model_analysis(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[Dict[str, List[float]], Field(description="多变量时间序列数据")],
+    coint_rank: Annotated[int, Field(default=1, description="协整秩")] = 1,
+    deterministic: Annotated[str, Field(default="co", description="确定性项")] = "co",
+    max_lags: Annotated[int, Field(default=5, description="最大滞后阶数")] = 5
+) -> CallToolResult:
+    """VECM模型分析"""
+    await ctx.info(f"开始VECM模型分析，变量数量: {len(data)}")
+    try:
+        result = vecm_model(data, coint_rank=coint_rank, deterministic=deterministic, max_lags=max_lags)
+        await ctx.info("VECM模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"VECM模型: 协整秩={result.coint_rank}, AIC={result.aic:.2f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"VECM模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def garch_model_analysis(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[List[float], Field(description="时间序列数据（通常是收益率）")],
+    order: Annotated[tuple, Field(default=(1, 1), description="GARCH阶数(p,q)")] = (1, 1),
+    dist: Annotated[str, Field(default="normal", description="误差分布")] = "normal"
+) -> CallToolResult:
+    """GARCH模型分析"""
+    await ctx.info(f"开始GARCH模型分析，样本大小: {len(data)}")
+    try:
+        result = garch_model(data, order=order, dist=dist)
+        await ctx.info("GARCH模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"GARCH模型: 持久性={result.persistence:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"GARCH模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def state_space_model_analysis(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[List[float], Field(description="时间序列数据")],
+    state_dim: Annotated[int, Field(default=1, description="状态维度")] = 1,
+    observation_dim: Annotated[int, Field(default=1, description="观测维度")] = 1,
+    trend: Annotated[bool, Field(default=True, description="是否包含趋势项")] = True,
+    seasonal: Annotated[bool, Field(default=False, description="是否包含季节项")] = False,
+    period: Annotated[int, Field(default=12, description="季节周期")] = 12
+) -> CallToolResult:
+    """状态空间模型分析"""
+    await ctx.info(f"开始状态空间模型分析，样本大小: {len(data)}")
+    try:
+        result = state_space_model(data, state_dim, observation_dim, trend, seasonal, period)
+        await ctx.info("状态空间模型分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"状态空间模型: AIC={result.aic:.2f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"状态空间模型分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def variance_decomposition_analysis(
+    ctx: Context[ServerSession, AppContext],
+    data: Annotated[Dict[str, List[float]], Field(description="多变量时间序列数据")],
+    periods: Annotated[int, Field(default=10, description="分解期数")] = 10,
+    max_lags: Annotated[int, Field(default=5, description="最大滞后阶数")] = 5
+) -> CallToolResult:
+    """方差分解分析"""
+    await ctx.info(f"开始方差分解分析，变量数量: {len(data)}")
+    try:
+        result = variance_decomposition(data, periods=periods, max_lags=max_lags)
+        await ctx.info("方差分解分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"方差分解: {periods}期")],
+            structuredContent=result
+        )
+    except Exception as e:
+        await ctx.error(f"方差分解分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+# ============================================================================
+# 机器学习工具
+# ============================================================================
+
+@mcp.tool()
+async def random_forest_regression_analysis(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="特征名称")] = None,
+    n_estimators: Annotated[int, Field(default=100, description="树的数量")] = 100,
+    max_depth: Annotated[Optional[int], Field(default=None, description="最大深度")] = None
+) -> CallToolResult:
+    """随机森林回归分析"""
+    await ctx.info(f"开始随机森林回归分析，样本大小: {len(y_data)}")
+    try:
+        result = random_forest_regression(y_data, x_data, feature_names, n_estimators, max_depth)
+        await ctx.info("随机森林回归分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"随机森林: R²={result.r2_score:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"随机森林回归分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def gradient_boosting_regression_analysis(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="特征名称")] = None,
+    n_estimators: Annotated[int, Field(default=100, description="树的数量")] = 100,
+    learning_rate: Annotated[float, Field(default=0.1, description="学习率")] = 0.1,
+    max_depth: Annotated[int, Field(default=3, description="最大深度")] = 3
+) -> CallToolResult:
+    """梯度提升树回归分析"""
+    await ctx.info(f"开始梯度提升树回归分析，样本大小: {len(y_data)}")
+    try:
+        result = gradient_boosting_regression(y_data, x_data, feature_names, n_estimators, learning_rate, max_depth)
+        await ctx.info("梯度提升树回归分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"梯度提升树: R²={result.r2_score:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"梯度提升树回归分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def lasso_regression_analysis(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="特征名称")] = None,
+    alpha: Annotated[float, Field(default=1.0, description="正则化强度")] = 1.0
+) -> CallToolResult:
+    """Lasso回归分析"""
+    await ctx.info(f"开始Lasso回归分析，样本大小: {len(y_data)}")
+    try:
+        result = lasso_regression(y_data, x_data, feature_names, alpha)
+        await ctx.info("Lasso回归分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Lasso回归: R²={result.r2_score:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"Lasso回归分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def ridge_regression_analysis(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="特征名称")] = None,
+    alpha: Annotated[float, Field(default=1.0, description="正则化强度")] = 1.0
+) -> CallToolResult:
+    """Ridge回归分析"""
+    await ctx.info(f"开始Ridge回归分析，样本大小: {len(y_data)}")
+    try:
+        result = ridge_regression(y_data, x_data, feature_names, alpha)
+        await ctx.info("Ridge回归分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Ridge回归: R²={result.r2_score:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"Ridge回归分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def cross_validation_analysis(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    model_type: Annotated[str, Field(default="random_forest", description="模型类型")] = "random_forest",
+    cv_folds: Annotated[int, Field(default=5, description="交叉验证折数")] = 5,
+    scoring: Annotated[str, Field(default="r2", description="评分指标")] = "r2"
+) -> CallToolResult:
+    """交叉验证分析"""
+    await ctx.info(f"开始交叉验证分析，模型类型: {model_type}")
+    try:
+        result = cross_validation(y_data, x_data, model_type, cv_folds, scoring)
+        await ctx.info("交叉验证分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"交叉验证: 平均得分={result.mean_score:.4f}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"交叉验证分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
+@mcp.tool()
+async def feature_importance_analysis_tool(
+    ctx: Context[ServerSession, AppContext],
+    y_data: Annotated[List[float], Field(description="因变量数据")],
+    x_data: Annotated[List[List[float]], Field(description="自变量数据")],
+    feature_names: Annotated[Optional[List[str]], Field(default=None, description="特征名称")] = None,
+    method: Annotated[str, Field(default="random_forest", description="分析方法")] = "random_forest",
+    top_k: Annotated[int, Field(default=5, description="最重要的特征数量")] = 5
+) -> CallToolResult:
+    """特征重要性分析"""
+    await ctx.info(f"开始特征重要性分析，方法: {method}")
+    try:
+        result = feature_importance_analysis(y_data, x_data, feature_names, method, top_k)
+        await ctx.info("特征重要性分析完成")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"特征重要性: Top特征={result.top_features}")],
+            structuredContent=result.model_dump()
+        )
+    except Exception as e:
+        await ctx.error(f"特征重要性分析出错: {str(e)}")
+        return CallToolResult(content=[TextContent(type="text", text=f"错误: {str(e)}")], isError=True)
+
+
 
 def create_mcp_server() -> FastMCP:
     """创建并返回MCP服务器实例"""

@@ -7,6 +7,7 @@ import pandas as pd
 from scipy import stats
 from typing import Dict, List, Any
 from pydantic import BaseModel
+import statsmodels.api as sm
 
 
 class DescriptiveStats(BaseModel):
@@ -27,20 +28,26 @@ class CorrelationResult(BaseModel):
     method: str
 
 
-def calculate_descriptive_stats(data: List[float]) -> DescriptiveStats:
-    """计算描述性统计量"""
-    series = pd.Series(data)
-
-    return DescriptiveStats(
-        mean=series.mean(),
-        median=series.median(),
-        std=series.std(),
-        min=series.min(),
-        max=series.max(),
-        skewness=series.skew(),
-        kurtosis=series.kurtosis(),
-        count=len(series)
-    )
+def calculate_descriptive_stats(data: Dict[str, List[float]]) -> Dict[str, Dict[str, Any]]:
+    """计算多变量描述性统计量"""
+    results = {}
+    for var_name, var_data in data.items():
+        # 使用numpy计算统计量，避免pandas问题
+        arr = np.array(var_data, dtype=float)
+        
+        stats_result = DescriptiveStats(
+            mean=float(np.mean(arr)),
+            median=float(np.median(arr)),
+            std=float(np.std(arr)),
+            min=float(np.min(arr)),
+            max=float(np.max(arr)),
+            skewness=float(stats.skew(arr)),
+            kurtosis=float(stats.kurtosis(arr)),
+            count=len(arr)
+        )
+        # 转换为字典格式
+        results[var_name] = stats_result.dict()
+    return results
 
 
 def calculate_correlation_matrix(
@@ -108,6 +115,19 @@ def perform_hypothesis_test(
             "alpha": alpha
         }
 
+    elif test_type == "adf":
+        # ADF单位根检验
+        from statsmodels.tsa.stattools import adfuller
+        adf_result = adfuller(data1)
+        return {
+            "test_type": "ADF单位根检验",
+            "statistic": adf_result[0],
+            "p_value": adf_result[1],
+            "critical_values": adf_result[4],
+            "significant": adf_result[1] < alpha,
+            "alpha": alpha
+        }
+    
     else:
         raise ValueError(f"不支持的检验类型: {test_type}")
 
