@@ -193,17 +193,23 @@ class FileParser:
         if isinstance(json_data, dict) and all(
             isinstance(v, list) for v in json_data.values()
         ):
-            # 检查是否所有值都是数值列表
+            # 保留所有列（包括字符串类型的ID和时间列）
             parsed_data = {}
             for key, values in json_data.items():
                 if key.lower() in ['metadata', 'info', 'description']:
                     continue  # 跳过元数据字段
                 
-                try:
-                    numeric_values = [float(v) for v in values]
-                    parsed_data[key] = numeric_values
-                except (ValueError, TypeError):
-                    pass  # 跳过非数值列
+                # 智能转换：尝试转数值，失败则保留原始类型
+                converted_values = []
+                for v in values:
+                    try:
+                        # 尝试转换为浮点数
+                        converted_values.append(float(v))
+                    except (ValueError, TypeError):
+                        # 无法转换则保留原始值（字符串等）
+                        converted_values.append(v)
+                
+                parsed_data[key] = converted_values
             
             if parsed_data:
                 data_type = FileParser._detect_data_type(parsed_data)
@@ -218,16 +224,18 @@ class FileParser:
         
         # 格式2: 记录数组格式
         elif isinstance(json_data, list) and json_data and isinstance(json_data[0], dict):
-            # 转换为变量-数据字典
+            # 转换为变量-数据字典，保留字符串类型
             parsed_data = {}
             for record in json_data:
                 for key, value in record.items():
                     if key not in parsed_data:
                         parsed_data[key] = []
+                    # 智能转换：尝试转数值，失败则保留原始类型
                     try:
                         parsed_data[key].append(float(value))
                     except (ValueError, TypeError):
-                        pass
+                        # 保留原始值（字符串等）
+                        parsed_data[key].append(value)
             
             if parsed_data:
                 data_type = FileParser._detect_data_type(parsed_data)
@@ -537,7 +545,7 @@ def parse_file_input(
     file_format: str = "auto"
 ) -> Optional[Dict[str, Any]]:
     """
-捷函数：解析文件输入
+    便捷函数：解析文件输入
     
     Args:
         file_content: 文件内容（可选）
@@ -550,4 +558,3 @@ def parse_file_input(
         return None
     
     return FileParser.parse_file_content(file_content, file_format)
-    便

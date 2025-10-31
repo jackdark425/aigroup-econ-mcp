@@ -14,6 +14,9 @@
 - ⏰ **时间序列分析** - 平稳性检验、ARIMA模型、预测
 - 🔄 **结构化输出** - 完整的Pydantic模型支持
 - 🎯 **上下文管理** - 进度报告、日志记录、错误处理
+- 📁 **文件输入支持** - 支持CSV/JSON文件自动解析
+- 📊 **面板数据分析** - 固定效应、随机效应模型等
+- 🤖 **机器学习集成** - 随机森林、梯度提升等算法
 
 ## 🚀 快速开始（Roo-Code用户）
 
@@ -29,7 +32,7 @@ uvx aigroup-econ-mcp
 ✅ 下载最新版本
 ✅ 配置轻量级依赖（仅~50MB）
 ✅ 启动并连接到Roo-Code
-✅ 提供5个专业计量经济学工具
+✅ 提供21个专业计量经济学工具
 
 ### 配置Roo-Code
 
@@ -49,7 +52,22 @@ uvx aigroup-econ-mcp
         "ols_regression",
         "hypothesis_testing",
         "time_series_analysis",
-        "correlation_analysis"
+        "correlation_analysis",
+        "panel_fixed_effects",
+        "panel_random_effects",
+        "panel_hausman_test",
+        "panel_unit_root_test",
+        "var_model_analysis",
+        "vecm_model_analysis",
+        "garch_model_analysis",
+        "state_space_model_analysis",
+        "variance_decomposition_analysis",
+        "random_forest_regression_analysis",
+        "gradient_boosting_regression_analysis",
+        "lasso_regression_analysis",
+        "ridge_regression_analysis",
+        "cross_validation_analysis",
+        "feature_importance_analysis_tool"
       ]
     }
   }
@@ -65,13 +83,28 @@ uvx aigroup-econ-mcp
 
 配置完成后，RooCode将自动连接到aigroup-econ-mcp服务，您可以直接使用以下工具：
 
-| 工具 | 功能 | 用途 |
-|------|------|------|
-| descriptive_statistics | 描述性统计分析 | 加载数据并自动计算统计量 |
-| ols_regression | OLS回归分析 | 回归建模和模型诊断 |
-| hypothesis_testing | 假设检验 | t检验、F检验、卡方检验、ADF检验 |
-| time_series_analysis | 时间序列分析 | 平稳性检验、ARIMA模型、预测 |
-| correlation_analysis | 相关性分析 | 变量间相关性分析和可视化 |
+| 工具类别 | 工具 | 功能 |
+|---------|------|------|
+| **基础统计** | descriptive_statistics | 描述性统计分析 |
+| | ols_regression | OLS回归分析 |
+| | hypothesis_testing | 假设检验 |
+| | time_series_analysis | 时间序列分析 |
+| | correlation_analysis | 相关性分析 |
+| **面板数据** | panel_fixed_effects | 固定效应模型 |
+| | panel_random_effects | 随机效应模型 |
+| | panel_hausman_test | Hausman检验 |
+| | panel_unit_root_test | 面板单位根检验 |
+| **时间序列** | var_model_analysis | VAR模型分析 |
+| | vecm_model_analysis | VECM模型分析 |
+| | garch_model_analysis | GARCH模型分析 |
+| | state_space_model_analysis | 状态空间模型分析 |
+| | variance_decomposition_analysis | 方差分解分析 |
+| **机器学习** | random_forest_regression_analysis | 随机森林回归 |
+| | gradient_boosting_regression_analysis | 梯度提升树回归 |
+| | lasso_regression_analysis | Lasso回归 |
+| | ridge_regression_analysis | Ridge回归 |
+| | cross_validation_analysis | 交叉验证 |
+| | feature_importance_analysis_tool | 特征重要性分析 |
 
 ## 📦 安装方式
 
@@ -105,6 +138,7 @@ aigroup-econ-mcp
 依赖说明：
 
 - **核心依赖**（默认）：pandas, numpy, scipy, mcp, statsmodels, matplotlib
+- **扩展依赖**：linearmodels（面板数据）, scikit-learn（机器学习）, arch（GARCH模型）
 - **轻量级**：无需torch或其他重型依赖
 - **推荐**：直接使用基础安装，包含所有计量经济学功能！
 
@@ -130,7 +164,25 @@ aigroup-econ-mcp
 📈 ARIMA建模：自动定阶和参数估计
 🔮 预测功能：点预测和区间预测
 
-5️⃣ 结构化输出
+5️⃣ 面板数据分析
+🏢 固定效应模型：控制个体/时间固定效应
+📊 随机效应模型：处理随机效应
+🔍 Hausman检验：模型选择
+📉 面板单位根检验：面板数据平稳性分析
+
+6️⃣ 机器学习集成
+🌳 随机森林：非线性关系建模
+🚀 梯度提升：高精度预测
+🔗 正则化回归：Lasso/Ridge防止过拟合
+🔍 交叉验证：模型性能评估
+🎯 特征重要性：变量选择
+
+7️⃣ 文件输入支持
+📁 自动解析：支持CSV/JSON文件自动解析
+🔄 向后兼容：保持原有直接数据输入方式
+⚙️ 灵活输入：可混合使用文件和直接数据
+
+8️⃣ 结构化输出
 📋 Pydantic模型：类型安全的数据结构
 📊 丰富格式：表格、JSON、Markdown报告
 🎯 错误处理：详细的错误信息和建议
@@ -200,7 +252,6 @@ uv run aigroup-econ-mcp --port 8000 --debug
 uvx -p . aigroup-econ-mcp
 ```
 
-
 ## 与RooCode集成
 
 在RooCode的MCP配置文件中添加：
@@ -216,15 +267,30 @@ uvx -p . aigroup-econ-mcp
     "ols_regression",
     "hypothesis_testing",
     "time_series_analysis",
-    "correlation_analysis"
+    "correlation_analysis",
+    "panel_fixed_effects",
+    "panel_random_effects",
+    "panel_hausman_test",
+    "panel_unit_root_test",
+    "var_model_analysis",
+    "vecm_model_analysis",
+    "garch_model_analysis",
+    "state_space_model_analysis",
+    "variance_decomposition_analysis",
+    "random_forest_regression_analysis",
+    "gradient_boosting_regression_analysis",
+    "lasso_regression_analysis",
+    "ridge_regression_analysis",
+    "cross_validation_analysis",
+    "feature_importance_analysis_tool"
   ],
   "disabled": true
 }
 ```
 
-
-
 ## 📋 工具详细说明
+
+### 基础统计工具
 
 #### descriptive_statistics
 描述性统计分析工具
@@ -233,6 +299,8 @@ uvx -p . aigroup-econ-mcp
 - `data`: 数值数据列表或字典
 - `variables`: 变量名列表（可选）
 - `output_format`: 输出格式（table/json）
+- `file_path`: CSV/JSON文件路径（可选）
+- `file_content`: CSV/JSON文件内容（可选）
 
 **返回：**
 - 基础统计量（均值、方差、偏度、峰度）
@@ -248,6 +316,8 @@ OLS回归分析工具
 - `feature_names`: 变量名称（可选）
 - `add_constant`: 是否添加常数项（默认true）
 - `output_detail`: 输出详细程度（可选）
+- `file_path`: CSV/JSON文件路径（可选）
+- `file_content`: CSV/JSON文件内容（可选）
 
 **返回：**
 - 回归系数和统计显著性
@@ -263,6 +333,8 @@ OLS回归分析工具
 - `data2`: 第二组数据（可选）
 - `test_type`: 检验类型（t_test/f_test/chi2_test/adf_test）
 - `alpha`: 显著性水平（默认0.05）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
 
 **返回：**
 - 检验统计量和p值
@@ -277,6 +349,8 @@ OLS回归分析工具
 - `analysis_type`: 分析类型（stationarity/arima/forecast）
 - `lags`: 滞后期数（默认12）
 - `forecast_steps`: 预测步数（可选）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
 
 **返回：**
 - 平稳性检验结果
@@ -291,12 +365,198 @@ OLS回归分析工具
 - `data`: 变量数据字典
 - `method`: 相关系数类型（pearson/spearman/kendall）
 - `plot`: 是否生成可视化图表（默认true）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
 
 **返回：**
 - 相关系数矩阵
 - 显著性检验结果
 - 相关性热力图
 
+### 面板数据分析工具
+
+#### panel_fixed_effects
+固定效应模型分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `entity_ids`: 实体标识符
+- `time_periods`: 时间标识符
+- `feature_names`: 特征名称（可选）
+- `entity_effects`: 是否包含实体效应（默认true）
+- `time_effects`: 是否包含时间效应（默认false）
+- `file_path`: CSV文件路径（可选）
+- `file_content`: CSV文件内容（可选）
+
+#### panel_random_effects
+随机效应模型分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `entity_ids`: 实体标识符
+- `time_periods`: 时间标识符
+- `feature_names`: 特征名称（可选）
+- `entity_effects`: 是否包含实体效应（默认true）
+- `time_effects`: 是否包含时间效应（默认false）
+- `file_path`: CSV文件路径（可选）
+- `file_content`: CSV文件内容（可选）
+
+#### panel_hausman_test
+Hausman检验工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `entity_ids`: 实体标识符
+- `time_periods`: 时间标识符
+- `feature_names`: 特征名称（可选）
+- `file_path`: CSV文件路径（可选）
+- `file_content`: CSV文件内容（可选）
+
+#### panel_unit_root_test
+面板单位根检验工具
+
+**参数：**
+- `data`: 时间序列数据
+- `y_data`: 因变量数据（可选）
+- `entity_ids`: 实体标识符
+- `time_periods`: 时间标识符
+- `feature_names`: 特征名称（可选）
+- `test_type`: 检验类型（默认levinlin）
+- `file_path`: CSV文件路径（可选）
+- `file_content`: CSV文件内容（可选）
+
+### 高级时间序列工具
+
+#### var_model_analysis
+VAR模型分析工具
+
+**参数：**
+- `data`: 多变量时间序列数据
+- `max_lags`: 最大滞后阶数（默认5）
+- `ic`: 信息准则（默认aic）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### vecm_model_analysis
+VECM模型分析工具
+
+**参数：**
+- `data`: 多变量时间序列数据
+- `coint_rank`: 协整秩（默认1）
+- `deterministic`: 确定性项（默认co）
+- `max_lags`: 最大滞后阶数（默认5）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### garch_model_analysis
+GARCH模型分析工具
+
+**参数：**
+- `data`: 时间序列数据
+- `order`: GARCH模型阶数（默认(1, 1)）
+- `dist`: 分布类型（默认normal）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### state_space_model_analysis
+状态空间模型分析工具
+
+**参数：**
+- `data`: 时间序列数据
+- `state_dim`: 状态维度（默认1）
+- `observation_dim`: 观测维度（默认1）
+- `trend`: 是否包含趋势（默认true）
+- `seasonal`: 是否包含季节性（默认false）
+- `period`: 季节周期（默认12）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### variance_decomposition_analysis
+方差分解分析工具
+
+**参数：**
+- `data`: 多变量时间序列数据
+- `periods`: 分解期数（默认10）
+- `max_lags`: 最大滞后阶数（默认5）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+### 机器学习工具
+
+#### random_forest_regression_analysis
+随机森林回归分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `n_estimators`: 树的数量（默认100）
+- `max_depth`: 最大深度（可选）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### gradient_boosting_regression_analysis
+梯度提升回归分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `n_estimators`: 树的数量（默认100）
+- `learning_rate`: 学习率（默认0.1）
+- `max_depth`: 最大深度（默认3）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### lasso_regression_analysis
+Lasso回归分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `alpha`: 正则化强度（默认1.0）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### ridge_regression_analysis
+Ridge回归分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `alpha`: 正则化强度（默认1.0）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### cross_validation_analysis
+交叉验证分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `model_type`: 模型类型（默认random_forest）
+- `cv_folds`: 交叉验证折数（默认5）
+- `scoring`: 评分标准（默认r2）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
+
+#### feature_importance_analysis_tool
+特征重要性分析工具
+
+**参数：**
+- `y_data`: 因变量数据
+- `x_data`: 自变量数据
+- `feature_names`: 特征名称（可选）
+- `method`: 分析方法（默认random_forest）
+- `top_k`: 返回前k个重要特征（默认5）
+- `file_path`: 文件路径（可选）
+- `file_content`: 文件内容（可选）
 
 ## 可用资源
 
@@ -325,8 +585,11 @@ aigroup-econ-mcp/
 │   └── tools/
 │       ├── __init__.py
 │       ├── statistics.py        # 统计分析工具
-│       ├── regression.py        # 回归分析工具
-│       └── time_series.py       # 时间序列工具
+│       ├── regression.py         # 回归分析工具
+│       ├── time_series.py        # 时间序列工具
+│       ├── panel_data.py         # 面板数据工具
+│       ├── machine_learning.py   # 机器学习工具
+│       └── file_parser.py        # 文件解析工具
 ├── pyproject.toml               # 项目配置
 ├── README.md
 └── examples/
@@ -341,6 +604,10 @@ aigroup-econ-mcp/
 - scipy >= 1.7.0
 - matplotlib >= 3.5.0
 - mcp >= 1.0.0
+- pydantic >= 2.0.0
+- linearmodels >= 7.0
+- scikit-learn >= 1.0.0
+- arch >= 6.0.0
 
 ## 开发
 
@@ -382,8 +649,6 @@ MIT License
 
 欢迎贡献代码！请查看[贡献指南](CONTRIBUTING.md)了解详情。
 
-
-
 ## 🤝 贡献
 
 欢迎提交Issue和Pull Request！
@@ -403,6 +668,8 @@ MIT License - 查看 LICENSE 了解详情
 - Roo-Code - AI编程助手
 - statsmodels - 统计分析库
 - pandas - 数据处理库
+- scikit-learn - 机器学习库
+- linearmodels - 面板数据分析库
 
 ## 📞 支持
 
@@ -411,5 +678,3 @@ MIT License - 查看 LICENSE 了解详情
 📚 文档：查看项目文档和示例
 
 **立即开始**: `uvx aigroup-econ-mcp` 🚀
-
----
