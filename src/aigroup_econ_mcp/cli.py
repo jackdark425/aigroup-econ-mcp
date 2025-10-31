@@ -4,6 +4,7 @@ AIGroup 计量经济学 MCP 服务命令行入口
 
 import sys
 import click
+import uvicorn
 from .server import create_mcp_server
 
 
@@ -51,36 +52,30 @@ def cli(port: int, host: str, transport: str, debug: bool, mount_path: str, vers
         mcp_server.run(transport='stdio')
         
     elif transport == 'streamable-http':
-        # Streamable HTTP模式
+        # Streamable HTTP模式 - 使用uvicorn手动启动
         click.echo(f"[INFO] Starting aigroup-econ-mcp server", err=True)
         click.echo(f"[INFO] Professional econometrics MCP tool for AI data analysis", err=True)
         click.echo(f"[INFO] Transport protocol: {transport}", err=True)
         click.echo(f"[INFO] Service address: http://{host}:{port}", err=True)
         if mount_path:
             click.echo(f"[INFO] Mount path: {mount_path}", err=True)
-            
-        mcp_server.run(
-            transport='streamable-http',
-            host=host,
-            port=port,
-            mount_path=mount_path or '/mcp'
-        )
+        
+        # 获取Starlette应用并启动uvicorn服务器
+        app = mcp_server.streamable_http_app()
+        uvicorn.run(app, host=host, port=port, log_level="info")
         
     elif transport == 'sse':
-        # SSE模式
+        # SSE模式 - 使用uvicorn手动启动
         click.echo(f"[INFO] Starting aigroup-econ-mcp server", err=True)
         click.echo(f"[INFO] Professional econometrics MCP tool for AI data analysis", err=True)
         click.echo(f"[INFO] Transport protocol: {transport}", err=True)
         click.echo(f"[INFO] Service address: http://{host}:{port}", err=True)
         if mount_path:
             click.echo(f"[INFO] Mount path: {mount_path}", err=True)
-            
-        mcp_server.run(
-            transport='sse',
-            host=host,
-            port=port,
-            mount_path=mount_path or '/sse'
-        )
+        
+        # 获取Starlette应用并启动uvicorn服务器
+        app = mcp_server.sse_app()
+        uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":

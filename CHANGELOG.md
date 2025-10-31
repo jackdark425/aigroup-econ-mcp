@@ -1,5 +1,21 @@
 # 更新日志
 
+## [0.4.0] - 2025-10-31
+
+### 新增
+- 🚀 **npx打包支持**: 项目现在支持通过uvx进行npx风格的安装和运行
+- 📦 **PyPI发布**: 版本0.4.0已成功发布到PyPI，支持多种安装方式
+
+### 安装方式
+- **uvx (推荐)**: `uvx aigroup-econ-mcp` 或 `uvx aigroup-econ-mcp@0.4.0`
+- **pip**: `pip install aigroup-econ-mcp`
+- **本地**: `aigroup-econ-mcp` (安装后直接运行)
+
+### 改进
+- 🔧 更新pyproject.toml配置，确保entry-points正确配置
+- 📝 完善文档，说明npx使用方式
+- ✅ 验证所有安装方式正常工作
+
 ## [0.3.5] - 2025-10-30
 
 ### 移除
