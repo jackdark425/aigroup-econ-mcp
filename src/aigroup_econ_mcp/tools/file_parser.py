@@ -15,6 +15,48 @@ class FileParser:
     """文件解析器，支持CSV和JSON格式"""
     
     @staticmethod
+    def parse_file_path(
+        file_path: str,
+        file_format: str = "auto"
+    ) -> Dict[str, Any]:
+        """
+        从文件路径解析文件
+        
+        Args:
+            file_path: 文件路径（相对或绝对路径）
+            file_format: 文件格式 ("csv", "json", "auto")
+        
+        Returns:
+            解析后的数据字典
+        """
+        path = Path(file_path)
+        
+        if not path.exists():
+            raise FileNotFoundError(f"文件不存在: {file_path}")
+        
+        if not path.is_file():
+            raise ValueError(f"路径不是文件: {file_path}")
+        
+        # 自动检测格式（基于文件扩展名）
+        if file_format == "auto":
+            ext = path.suffix.lower()
+            if ext == '.csv':
+                file_format = "csv"
+            elif ext in ['.json', '.jsonl']:
+                file_format = "json"
+            else:
+                # 尝试从内容检测
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                return FileParser.parse_file_content(content, "auto")
+        
+        # 读取文件内容
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return FileParser.parse_file_content(content, file_format)
+    
+    @staticmethod
     def parse_file_content(
         content: str,
         file_format: str = "auto"
@@ -111,14 +153,14 @@ class FileParser:
                         value = float(row[i].strip())
                         column_data.append(value)
                     except ValueError:
-                        # 如果无法转换，可能是缺失值或字符串
-                        pass
+                        # 如果无法转换，保留原字符串（用于ID列）
+                        column_data.append(row[i].strip())
             
-            if column_data:  # 只保留成功解析的列
+            if column_data:  # 只保留有数据的列
                 parsed_data[header.strip()] = column_data
         
         if not parsed_data:
-            raise ValueError("CSV文件中没有有效的数值数据")
+            raise ValueError("CSV文件中没有有效的数据")
         
         # 检测数据类型
         data_type = FileParser._detect_data_type(parsed_data)
@@ -232,7 +274,7 @@ class FileParser:
         return False
     
     @staticmethod
-    def _detect_data_type(data: Dict[str, List[float]]) -> str:
+    def _detect_data_type(data: Dict[str, List]) -> str:
         """
         检测数据类型
         
@@ -287,13 +329,17 @@ class FileParser:
         
         if tool_type == 'single_var':
             # 返回第一个变量的数据
+            var_data = data[variables[0]]
             return {
-                "data": data[variables[0]],
-                "variable_name": variables[0]
+                "data": var_data
             }
         
         elif tool_type == 'multi_var_dict':
             # 直接返回字典格式
+            return {"data": data}
+        
+        elif tool_type == 'time_series':
+            # 时间序列类型，与multi_var_dict相同，返回字典格式
             return {"data": data}
         
         elif tool_type == 'multi_var_matrix':
@@ -329,8 +375,7 @@ class FileParser:
             return {
                 "y_data": y_data,
                 "x_data": x_data,
-                "feature_names": x_vars,
-                "y_variable": y_var
+                "feature_names": x_vars
             }
         
         elif tool_type == 'panel':
@@ -342,45 +387,77 @@ class FileParser:
             entity_keywords = ['id', 'entity', 'firm', 'company', 'country', 'region']
             time_keywords = ['time', 'date', 'year', 'month', 'day', 'period', 'quarter']
             
+            # 更详细的检测逻辑
+            print(f"Debug: 开始检测面板数据列...")
             for var in variables:
                 var_lower = var.lower()
-                if any(kw in var_lower for kw in entity_keywords) and entity_var is None:
+                print(f"Debug: 检查变量 '{var}' (小写: '{var_lower}')")
+                
+                # 检查是否是实体ID列
+                is_entity = any(kw in var_lower for kw in entity_keywords)
+                is_time = any(kw in var_lower for kw in time_keywords)
+                
+                if is_entity and entity_var is None:
                     entity_var = var
-                elif any(kw in var_lower for kw in time_keywords) and time_var is None:
+                    print(f"Debug: 识别为实体ID列: {var}")
+                elif is_time and time_var is None:
                     time_var = var
+                    print(f"Debug: 识别为时间列: {var}")
                 else:
                     data_vars.append(var)
+                    print(f"Debug: 识别为数据列: {var}")
+            
+            print(f"Debug: entity_var={entity_var}, time_var={time_var}, data_vars={data_vars}")
             
             if not entity_var or not time_var:
-                raise ValueError("面板数据需要包含实体ID和时间标识变量")
+                # 提供更详细的错误信息
+                available_vars = ', '.join(variables)
+                error_msg = f"面板数据需要包含实体ID和时间标识变量。\n"
+                error_msg += f"可用列: {available_vars}\n"
+                error_msg += f"检测到的实体ID列: {entity_var if entity_var else '未检测到'}\n"
+                error_msg += f"检测到的时间列: {time_var if time_var else '未检测到'}\n"
+                error_msg += f"实体ID关键词: {entity_keywords}\n"
+                error_msg += f"时间关键词: {time_keywords}"
+                raise ValueError(error_msg)
             
-            if len(data_vars) < 2:
-                raise ValueError("面板数据至少需要2个数据变量（1个因变量和至少1个自变量）")
+            if len(data_vars) < 1:
+                raise ValueError(f"面板数据至少需要1个数据变量。当前数据列: {data_vars}")
             
-            # 转换ID和时间为字符串
-            entity_ids = [str(int(x)) if x == int(x) else str(x) for x in data[entity_var]]
-            time_periods = [str(int(x)) if x == int(x) else str(x) for x in data[time_var]]
+            # 转换ID和时间（保持原类型，可能是字符串或数字）
+            entity_ids = [str(x) for x in data[entity_var]]
+            time_periods = [str(int(x)) if isinstance(x, float) and x == int(x) else str(x) for x in data[time_var]]
             
-            # 假设最后一个数据变量是因变量
-            y_var = data_vars[-1]
-            x_vars = data_vars[:-1]
+            print(f"Debug: entity_ids样本: {entity_ids[:5]}")
+            print(f"Debug: time_periods样本: {time_periods[:5]}")
             
-            y_data = data[y_var]
-            n_obs = len(y_data)
-            
-            # 构建x_data矩阵
-            x_data = []
-            for i in range(n_obs):
-                row = [data[var][i] for var in x_vars]
-                x_data.append(row)
+            # 如果只有一个数据变量，将其作为因变量
+            if len(data_vars) == 1:
+                y_var = data_vars[0]
+                y_data = data[y_var]
+                # 创建一个虚拟自变量（常数项）
+                n_obs = len(y_data)
+                x_data = [[1.0] for _ in range(n_obs)]
+                x_vars = ['const']
+            else:
+                # 假设最后一个数据变量是因变量
+                y_var = data_vars[-1]
+                x_vars = data_vars[:-1]
+                
+                y_data = data[y_var]
+                n_obs = len(y_data)
+                
+                # 构建x_data矩阵
+                x_data = []
+                for i in range(n_obs):
+                    row = [data[var][i] for var in x_vars]
+                    x_data.append(row)
             
             return {
                 "y_data": y_data,
                 "x_data": x_data,
                 "entity_ids": entity_ids,
                 "time_periods": time_periods,
-                "feature_names": x_vars,
-                "y_variable": y_var
+                "feature_names": x_vars
             }
         
         else:
@@ -460,7 +537,7 @@ def parse_file_input(
     file_format: str = "auto"
 ) -> Optional[Dict[str, Any]]:
     """
-    便捷函数：解析文件输入
+捷函数：解析文件输入
     
     Args:
         file_content: 文件内容（可选）
@@ -472,5 +549,5 @@ def parse_file_input(
     if file_content is None:
         return None
     
-    parser = FileParser()
-    return parser.parse_file_content(file_content, file_format)
+    return FileParser.parse_file_content(file_content, file_format)
+    便

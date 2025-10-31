@@ -1,4 +1,3 @@
-
 """
 面板数据分析工具
 """
@@ -397,7 +396,8 @@ def panel_unit_root_test(
     data: List[float],
     entity_ids: List[str],
     time_periods: List[str],
-    test_type: str = "levinlin"
+    test_type: str = "levinlin",
+    **kwargs  # 接受并忽略额外参数（如y_data, x_data等）
 ) -> PanelUnitRootResult:
     """
     面板单位根检验
@@ -421,6 +421,7 @@ def panel_unit_root_test(
         entity_ids: 个体标识符
         time_periods: 时间标识符
         test_type: 检验类型 ("levinlin", "ips", "fisher")
+        **kwargs: 额外参数（忽略）
     
     Returns:
         PanelUnitRootResult: 面板单位根检验结果
