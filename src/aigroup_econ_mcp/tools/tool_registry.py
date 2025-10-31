@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List, Callable
 from pydantic import Field
 from typing import Annotated
 
-from .decorators import econometric_tool
+from .base import with_file_support_decorator as econometric_tool
 
 
 # 标准文件输入参数定义

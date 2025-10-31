@@ -38,7 +38,7 @@ from .tools.tool_handlers import (
 )
 
 # 导入装饰器
-from .tools.decorators import econometric_tool
+from .tools.base import with_file_support_decorator as econometric_tool
 
 
 # 应用上下文

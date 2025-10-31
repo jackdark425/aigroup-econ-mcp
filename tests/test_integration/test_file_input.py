@@ -13,7 +13,7 @@ from typing import Dict, Any
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from aigroup_econ_mcp.tools.file_parser import FileParser
-from aigroup_econ_mcp.tools.file_input_handler import process_file_for_tool
+from aigroup_econ_mcp.tools.file_parser import process_file_for_tool
 
 
 class TestCSVFileInput:
