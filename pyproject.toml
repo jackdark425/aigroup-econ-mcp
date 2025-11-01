@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aigroup-econ-mcp"
-version = "0.4.2"
-description = "专业计量经济学MCP工具 - 让大模型直接进行数据分析"
+version = "0.6.0"
+description = "专业计量经济学MCP工具 - 让大模型直接进行数据分析（优化版：增强工具描述，提升大模型调用体验）"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [

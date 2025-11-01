@@ -3,16 +3,17 @@
 """
 
 from . import regression, statistics, time_series, machine_learning, panel_data
-from . import validation, cache, monitoring, file_parser
+from . import validation, cache, monitoring, file_parser, tool_descriptions
 
 __all__ = [
-    "regression", 
-    "statistics", 
-    "time_series", 
-    "machine_learning", 
+    "regression",
+    "statistics",
+    "time_series",
+    "machine_learning",
     "panel_data",
     "validation",
-    "cache", 
+    "cache",
     "monitoring",
-    "file_parser"
+    "file_parser",
+    "tool_descriptions"
 ]
