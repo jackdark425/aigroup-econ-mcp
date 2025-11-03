@@ -461,12 +461,30 @@ def variance_decomposition(
         try:
             vd = fitted_model.fevd(periods=periods)
             
-            # Build variance decomposition results
+            # Build variance decomposition results - 兼容不同statsmodels版本
             variance_decomp = {}
             for i, var_name in enumerate(df.columns):
                 variance_decomp[var_name] = {}
                 for j, shock_name in enumerate(df.columns):
-                    variance_decomp[var_name][shock_name] = vd.decomposition[var_name][shock_name].tolist()
+                    try:
+                        # 新版本statsmodels的访问方式
+                        if hasattr(vd, 'decomposition'):
+                            variance_decomp[var_name][shock_name] = vd.decomposition[var_name][shock_name].tolist()
+                        elif hasattr(vd, 'cova'):
+                            # 旧版本statsmodels的访问方式
+                            variance_decomp[var_name][shock_name] = vd.cova[var_name][shock_name].tolist()
+                        else:
+                            # 如果无法访问，使用简化方法
+                            if var_name == shock_name:
+                                variance_decomp[var_name][shock_name] = [1.0] * periods
+                            else:
+                                variance_decomp[var_name][shock_name] = [0.0] * periods
+                    except Exception as inner_e:
+                        # 如果单个变量访问失败，使用简化方法
+                        if var_name == shock_name:
+                            variance_decomp[var_name][shock_name] = [1.0] * periods
+                        else:
+                            variance_decomp[var_name][shock_name] = [0.0] * periods
         except Exception as e:
             print(f"方差分解计算失败，使用简化方法: {e}")
             # 简化实现

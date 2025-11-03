@@ -130,35 +130,49 @@ def _regularized_regression(
     elif len(feature_names) != X.shape[1]:
         raise ValueError(f"特征名称数量({len(feature_names)})与自变量数量({X.shape[1]})不匹配")
     
-    # 数据标准化
+    # 检查数据质量
+    if len(y) < 5:
+        warnings.warn(f"⚠️ 警告：样本数量较少（{len(y)}个），正则化回归可能不稳定")
+    
+    # 数据标准化 - 只标准化自变量，不标准化因变量
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    y_scaled = (y - np.mean(y)) / np.std(y)  # 标准化因变量
     
     # 选择模型
     if model_type == "lasso":
-        model = Lasso(alpha=alpha, random_state=random_state, max_iter=10000)
+        model = Lasso(alpha=alpha, random_state=random_state, max_iter=10000, tol=1e-4)
+        # 对于Lasso，如果alpha过大，建议使用更小的值
+        if alpha > 10:
+            warnings.warn(f"⚠️ 警告：Lasso正则化参数alpha={alpha}可能过大，建议尝试更小的值（如0.1-1.0）")
     elif model_type == "ridge":
         model = Ridge(alpha=alpha, random_state=random_state)
     else:
         raise ValueError(f"不支持的模型类型: {model_type}")
     
     # 训练模型
-    model.fit(X_scaled, y_scaled)
+    try:
+        model.fit(X_scaled, y)
+    except Exception as e:
+        raise ValueError(f"{model_type}模型拟合失败: {str(e)}。建议：1) 检查数据质量 2) 尝试不同的alpha值 3) 增加样本数量")
     
     # 预测
-    y_pred_scaled = model.predict(X_scaled)
-    
-    # 将预测值转换回原始尺度
-    y_pred = y_pred_scaled * np.std(y) + np.mean(y)
+    y_pred = model.predict(X_scaled)
     
     # 计算评估指标
     r2 = r2_score(y, y_pred)
     mse = mean_squared_error(y, y_pred)
     mae = mean_absolute_error(y, y_pred)
     
+    # 检查R²是否为负值
+    if r2 < 0:
+        warnings.warn(f"⚠️ 警告：{model_type}模型的R²为负值({r2:.4f})，表明模型性能比简单均值预测更差。可能原因：1) 数据噪声过大 2) 特征与目标变量无关 3) 正则化参数过大 4) 样本量过小")
+    
     # 系数（注意：由于标准化，系数需要适当解释）
     coefficients = dict(zip(feature_names, model.coef_))
+    
+    # 检查系数是否全为0（Lasso过度压缩）
+    if model_type == "lasso" and all(abs(coef) < 1e-10 for coef in model.coef_):
+        warnings.warn(f"⚠️ 警告：Lasso模型所有系数都被压缩为0，表明正则化参数alpha={alpha}可能过大，建议减小alpha值")
     
     return RegularizedRegressionResult(
         model_type=model_type,

@@ -63,6 +63,23 @@ def prepare_panel_data(
     """
     准备面板数据格式
     
+    📊 数据格式要求：
+    - 因变量(y_data): 数值列表，如 [1.2, 3.4, 5.6, ...]
+    - 自变量(X_data): 二维数值列表，如 [[1, 2], [3, 4], [5, 6], ...]
+    - 实体ID(entity_ids): 字符串列表，标识不同个体，如 ['A', 'A', 'B', 'B', ...]
+    - 时间标识符(time_periods): 字符串或数值列表，标识时间点，如 ['2020', '2020', '2021', '2021', ...]
+    
+    💡 使用示例：
+    y_data = [10, 12, 8, 9]  # 4个观测值
+    X_data = [[1, 2], [2, 3], [1, 1], [2, 2]]  # 2个自变量，4个观测值
+    entity_ids = ['A', 'A', 'B', 'B']  # 2个实体，每个实体2个时间点
+    time_periods = ['2020', '2021', '2020', '2021']  # 2个时间点
+    
+    ⚠️ 注意事项：
+    - 确保每个实体有相同的时间点数量（平衡面板）
+    - 实体ID和时间标识符的组合必须唯一
+    - 建议至少3个实体，每个实体至少2个时间点
+    
     Args:
         y_data: 因变量数据
         X_data: 自变量数据，二维列表
@@ -73,13 +90,62 @@ def prepare_panel_data(
     Returns:
         pd.DataFrame: 面板数据格式的DataFrame
     """
-    # 数据验证
+    # 数据验证 - 提供更详细的错误信息
+    if not y_data or not X_data or not entity_ids or not time_periods:
+        raise ValueError("所有输入数据都不能为空。请提供：因变量(y_data)、自变量(X_data)、实体ID(entity_ids)、时间标识符(time_periods)")
+    
     if len(y_data) != len(X_data):
-        raise ValueError("因变量和自变量的观测数量不一致")
+        raise ValueError(f"因变量和自变量的观测数量不一致：因变量有{len(y_data)}个观测值，自变量有{len(X_data)}个观测值")
+    
     if len(y_data) != len(entity_ids):
-        raise ValueError("因变量和个体标识符数量不一致")
+        raise ValueError(f"因变量和个体标识符数量不一致：因变量有{len(y_data)}个观测值，实体ID有{len(entity_ids)}个")
+    
     if len(y_data) != len(time_periods):
-        raise ValueError("因变量和时间标识符数量不一致")
+        raise ValueError(f"因变量和时间标识符数量不一致：因变量有{len(y_data)}个观测值，时间标识符有{len(time_periods)}个")
+    
+    # 检查自变量维度一致性
+    if len(X_data) > 0:
+        first_dim = len(X_data[0])
+        for i, x_row in enumerate(X_data):
+            if len(x_row) != first_dim:
+                raise ValueError(f"自变量维度不一致：第{i}行有{len(x_row)}个变量，但第一行有{first_dim}个变量")
+    
+    # 检查面板数据平衡性
+    entity_time_counts = {}
+    for entity, time_period in zip(entity_ids, time_periods):
+        key = (entity, time_period)
+        if key in entity_time_counts:
+            raise ValueError(f"重复的实体-时间组合：实体 '{entity}' 在时间 '{time_period}' 有多个观测值")
+        entity_time_counts[key] = True
+    
+    # 检查每个实体的时间点数量
+    entity_counts = {}
+    for entity in entity_ids:
+        entity_counts[entity] = entity_counts.get(entity, 0) + 1
+    
+    unique_entities = len(entity_counts)
+    if unique_entities < 2:
+        raise ValueError(f"面板数据需要至少2个不同的实体，当前只有{unique_entities}个")
+    
+    # 检查时间点数量
+    time_counts = {}
+    for time_period in time_periods:
+        time_counts[time_period] = time_counts.get(time_period, 0) + 1
+    
+    unique_times = len(time_counts)
+    if unique_times < 2:
+        raise ValueError(f"面板数据需要至少2个不同的时间点，当前只有{unique_times}个")
+    
+    # 检查是否为平衡面板
+    time_counts_per_entity = {}
+    for entity in set(entity_ids):
+        entity_times = [time for e, time in zip(entity_ids, time_periods) if e == entity]
+        time_counts_per_entity[entity] = len(set(entity_times))
+    
+    min_times = min(time_counts_per_entity.values())
+    max_times = max(time_counts_per_entity.values())
+    if min_times != max_times:
+        warnings.warn(f"⚠️ 警告：面板数据不平衡。不同实体的时间点数量不同（最少{min_times}个，最多{max_times}个）。建议使用平衡面板数据以获得更可靠的结果。")
     
     # 处理时间标识符格式兼容性
     processed_time_periods = []

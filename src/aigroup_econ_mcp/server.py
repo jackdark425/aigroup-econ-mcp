@@ -70,7 +70,7 @@ from .tools.tool_descriptions import (
 class AppContext:
     """应用上下文，包含共享资源"""
     config: Dict[str, Any]
-    version: str = "0.6.0"
+    version: str = "1.0.0"
 
 
 @asynccontextmanager
@@ -83,7 +83,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
         "data_types": ["cross_section", "time_series", "panel"]
     }
     try:
-        yield AppContext(config=config, version="0.6.0")
+        yield AppContext(config=config, version="1.0.0")
     finally:
         pass
 
