@@ -34,232 +34,87 @@ class ToolDescription:
 
 
 # ============================================================================
-# 基础统计工具描述 (5个) - 优化版
+# 基础统计工具描述 (5个)
 # ============================================================================
 
 DESCRIPTIVE_STATISTICS = ToolDescription(
     name="descriptive_statistics",
     description="""计算描述性统计量
 
-功能说明:
-- 计算数据的均值、标准差、最小值、最大值、中位数、四分位数等
-- 支持数值型数据的全面统计分析
-- 自动识别异常值和数据分布特征
-
-输入方式优先级:
-1. file_path: 文件路径 (推荐使用，支持CSV/JSON格式)
-2. file_content: 文件内容字符串 (适合小文件)
-3. data: 直接传入数据字典 (适合内存数据)
-
-输出包含:
-- 基本统计量: 均值、标准差、最小值、最大值
-- 分布统计: 中位数、四分位数、偏度、峰度
-- 数据质量: 缺失值统计、异常值检测""",
+支持三种输入方式：file_path(文件路径)、file_content(文件内容)、data(直接数据)
+支持格式：CSV、JSON、TXT（单列/多列/键值对三种格式）""",
     field_descriptions={
-        "file_path": "CSV/JSON文件路径。支持相对路径和绝对路径，文件应包含数值型数据列",
-        "file_content": "CSV/JSON文件内容字符串。适合小文件直接传输，避免路径依赖",
-        "file_format": "文件格式: csv/json/auto。auto模式自动检测文件格式",
-        "data": "数据字典格式: {'变量名1': [值1, 值2, ...], '变量名2': [值1, 值2, ...]}"
-    },
-    examples=[
-        "分析GDP数据的分布特征",
-        "计算股票收益率的描述性统计",
-        "评估消费者收入数据的集中趋势和离散程度"
-    ],
-    use_cases=[
-        "数据探索性分析(EDA)",
-        "数据质量评估",
-        "变量分布特征分析",
-        "异常值检测"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径",
+        "file_content": "CSV/JSON/TXT文件内容",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "data": "数据字典"
+    }
 )
 
 OLS_REGRESSION = ToolDescription(
     name="ols_regression",
     description="""OLS回归分析
-
-功能说明:
-- 执行普通最小二乘法(OLS)回归分析
-- 估计回归系数、标准误、t统计量、p值
-- 计算模型拟合优度(R²、调整R²)
-- 进行模型显著性检验(F检验)
-
-数据格式要求:
-- 文件输入: CSV文件最后一列为因变量，其余列为自变量
-- 直接输入: 提供y_data(因变量)和x_data(自变量矩阵)
-- 支持特征名称自定义
-
-模型输出:
-- 回归系数估计值和统计显著性
-- 模型拟合优度指标
-- 残差分析和诊断统计量
-- 置信区间和预测区间""",
+    
+支持文件输入或直接数据输入。文件格式示例：
+CSV: 最后一列为因变量，其余列为自变量""",
     field_descriptions={
-        "file_path": "CSV/JSON文件路径。CSV格式: 最后一列为因变量，其余列为自变量",
-        "file_content": "CSV/JSON文件内容字符串。JSON格式: {'y': [因变量], 'x1': [自变量1], ...}",
-        "file_format": "文件格式: csv/json/auto。推荐使用CSV格式",
-        "y_data": "因变量数据列表，如 [1.2, 3.4, 5.6, ...]",
-        "x_data": "自变量数据矩阵，如 [[1, 2], [3, 4], [5, 6], ...]",
-        "feature_names": "自变量名称列表，如 ['GDP', 'Population', 'Investment']"
-    },
-    examples=[
-        "分析GDP增长与投资、消费的关系",
-        "预测房价与面积、位置、房龄的关系",
-        "研究教育水平对收入的影响"
-    ],
-    use_cases=[
-        "经济变量关系分析",
-        "商业预测建模",
-        "政策效果评估",
-        "影响因素识别"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径",
+        "file_content": "CSV/JSON/TXT文件内容",
+        "file_format": "文件格式",
+        "y_data": "因变量(直接输入)",
+        "x_data": "自变量(直接输入)",
+        "feature_names": "特征名称"
+    }
 )
 
 HYPOTHESIS_TESTING = ToolDescription(
     name="hypothesis_testing",
-    description="""假设检验分析
-
-功能说明:
-- t检验: 比较两组数据的均值差异
-- ADF检验: 时间序列平稳性检验
-- 支持单样本、双样本检验
-- 自动计算检验统计量和p值
-
-检验类型说明:
-- t_test: 学生t检验，用于均值比较
-- adf: Augmented Dickey-Fuller检验，用于时间序列平稳性
-
-数据要求:
-- 单样本检验: 只需提供data参数
-- 双样本检验: 提供data和data2参数
-- 时间序列检验: 使用adf检验类型""",
+    description="假设检验 - 支持文件或直接数据输入",
     field_descriptions={
-        "file_path": "数据文件路径。支持单变量或多变量数据",
-        "file_content": "文件内容字符串。适合小数据集",
-        "file_format": "文件格式: csv/json/auto",
-        "data": "第一组数据或单样本数据，数值列表格式",
-        "data2": "第二组数据(双样本检验时使用)，数值列表格式",
-        "test_type": "检验类型: t_test(均值检验)/adf(平稳性检验)"
-    },
-    examples=[
-        "检验两组学生的考试成绩是否有显著差异",
-        "检验GDP时间序列是否平稳",
-        "比较新旧营销策略的效果差异"
-    ],
-    use_cases=[
-        "A/B测试结果验证",
-        "时间序列平稳性分析",
-        "均值差异显著性检验",
-        "实验效果评估"
-    ]
+        "file_path": "文件路径",
+        "file_content": "文件内容",
+        "file_format": "文件格式",
+        "data": "第一组数据",
+        "data2": "第二组数据",
+        "test_type": "检验类型(t_test/adf)"
+    }
 )
 
 TIME_SERIES_ANALYSIS = ToolDescription(
     name="time_series_analysis",
-    description="""时间序列分析
-
-功能说明:
-- 时间序列趋势分析和季节性分解
-- 自相关函数(ACF)和偏自相关函数(PACF)分析
-- 平稳性检验和单位根检验
-- 时间序列模型诊断
-
-分析内容:
-- 趋势成分: 长期变化趋势
-- 季节成分: 周期性波动
-- 残差成分: 随机波动
-- 自相关性: 时间依赖性分析""",
+    description="时间序列分析 - 支持文件或直接数据输入",
     field_descriptions={
-        "file_path": "时间序列数据文件路径。支持单变量时间序列",
-        "file_content": "文件内容字符串。数据应按时间顺序排列",
-        "file_format": "文件格式: csv/json/auto",
-        "data": "时间序列数据，数值列表格式，如 [100, 105, 110, 115, ...]"
-    },
-    examples=[
-        "分析GDP季度数据的趋势和季节性",
-        "分解股票价格的趋势和波动成分",
-        "检验销售数据的自相关性"
-    ],
-    use_cases=[
-        "经济周期分析",
-        "销售预测建模",
-        "金融市场分析",
-        "季节性调整"
-    ]
+        "file_path": "文件路径",
+        "file_content": "文件内容",
+        "file_format": "文件格式",
+        "data": "时间序列数据"
+    }
 )
 
 CORRELATION_ANALYSIS = ToolDescription(
     name="correlation_analysis",
-    description="""相关性分析
-
-功能说明:
-- 计算变量间的相关系数矩阵
-- 支持Pearson、Spearman、Kendall相关系数
-- 可视化相关矩阵(可选)
-- 显著性检验和置信区间
-
-相关系数类型:
-- pearson: 皮尔逊相关系数，衡量线性关系
-- spearman: 斯皮尔曼等级相关系数，衡量单调关系
-- kendall: 肯德尔等级相关系数，稳健性更好
-
-应用场景:
-- 变量关系探索
-- 多重共线性检测
-- 特征选择辅助""",
+    description="相关性分析 - 支持文件或直接数据输入",
     field_descriptions={
-        "file_path": "多变量数据文件路径。每列代表一个变量",
-        "file_content": "文件内容字符串。支持多变量数据",
-        "file_format": "文件格式: csv/json/auto",
-        "data": "多变量数据字典，如 {'GDP': [值], 'Population': [值], ...}",
-        "method": "相关系数类型: pearson(默认)/spearman/kendall"
-    },
-    examples=[
-        "分析经济指标间的相关性",
-        "研究股票收益率的相关性结构",
-        "探索消费者行为变量间的关系"
-    ],
-    use_cases=[
-        "变量关系探索",
-        "多重共线性检测",
-        "投资组合相关性分析",
-        "市场联动性研究"
-    ]
+        "file_path": "文件路径",
+        "file_content": "文件内容",
+        "file_format": "文件格式",
+        "data": "多变量数据",
+        "method": "相关系数类型"
+    }
 )
 
 
 # ============================================================================
-# 面板数据工具描述 (4个) - 优化版
+# 面板数据工具描述 (4个)
 # ============================================================================
 
 PANEL_FIXED_EFFECTS = ToolDescription(
     name="panel_fixed_effects",
-    description="""固定效应模型
-
-功能说明:
-- 处理面板数据的固定效应模型
-- 控制个体固定效应和/或时间固定效应
-- 消除不随时间变化的个体异质性
-- 提供稳健的标准误估计
-
-模型特点:
-- 实体效应: 控制个体间不可观测的固定差异
-- 时间效应: 控制时间趋势和宏观冲击
-- 双向固定效应: 同时控制实体和时间效应
-
-数据格式要求:
-- 必须包含实体ID列和时间列
-- 实体ID列名识别: entity_id, id, entity, firm, company, country, region
-- 时间列名识别: time_period, time, date, year, month, period, quarter
-
-适用场景:
-- 个体间存在不可观测的固定差异
-- 需要控制个体特异性因素
-- 数据存在明显的个体效应""",
+    description="固定效应模型 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV文件路径。必须包含实体ID列和时间列，支持自动识别列名",
-        "file_content": "文件内容字符串。CSV格式，包含实体ID、时间和变量列",
-        "file_format": "文件格式: csv/auto。面板数据推荐使用CSV格式",
+        "file_path": "CSV文件路径。CSV格式要求：必须包含实体ID列(列名含entity_id/id/entity/firm/company/country/region之一)和时间列(列名含time_period/time/date/year/month/period/quarter之一)",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)。面板数据推荐使用CSV格式",
         "y_data": "因变量数据列表，数值格式",
         "x_data": "自变量数据矩阵，二维列表格式",
         "entity_ids": "实体ID列表，字符串格式，如 ['A', 'B', 'C', ...]",
@@ -267,48 +122,16 @@ PANEL_FIXED_EFFECTS = ToolDescription(
         "feature_names": "自变量名称列表，如 ['Investment', 'Employment', 'R&D']",
         "entity_effects": "是否包含实体固定效应，默认True",
         "time_effects": "是否包含时间固定效应，默认False"
-    },
-    examples=[
-        "分析不同公司的研发投入对利润的影响(控制公司固定效应)",
-        "研究各国教育支出对经济增长的影响(控制国家固定效应)",
-        "评估政策改革效果(控制个体和时间双向效应)"
-    ],
-    use_cases=[
-        "公司财务面板数据分析",
-        "国家宏观经济面板研究",
-        "政策评估和效果分析",
-        "个体异质性控制"
-    ]
+    }
 )
 
 PANEL_RANDOM_EFFECTS = ToolDescription(
     name="panel_random_effects",
-    description="""随机效应模型
-
-功能说明:
-- 处理面板数据的随机效应模型
-- 假设个体效应与解释变量不相关
-- 更有效地利用数据信息
-- 适用于大样本面板数据
-
-模型特点:
-- 个体效应被视为随机变量
-- 允许个体间存在相关性
-- 比固定效应模型更高效
-- 可以估计不随时间变化的变量
-
-与固定效应比较:
-- 随机效应假设更强(个体效应与解释变量不相关)
-- 固定效应更稳健但损失信息
-- 可通过Hausman检验选择合适模型
-
-数据要求:
-- 与固定效应模型相同的数据格式
-- 需要实体ID和时间信息""",
+    description="随机效应模型 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV文件路径。必须包含实体ID列和时间列，支持自动识别",
-        "file_content": "文件内容字符串。CSV格式的面板数据",
-        "file_format": "文件格式: csv/auto",
+        "file_path": "CSV文件路径。CSV格式要求：必须包含实体ID列和时间列",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "y_data": "因变量数据列表，数值格式",
         "x_data": "自变量数据矩阵，二维列表格式",
         "entity_ids": "实体ID列表，字符串格式",
@@ -316,110 +139,39 @@ PANEL_RANDOM_EFFECTS = ToolDescription(
         "feature_names": "自变量名称列表",
         "entity_effects": "是否包含实体随机效应，默认True",
         "time_effects": "是否包含时间随机效应，默认False"
-    },
-    examples=[
-        "分析企业特征对绩效的影响(假设企业效应随机)",
-        "研究家庭特征对消费行为的影响",
-        "评估地区特征对经济发展的影响"
-    ],
-    use_cases=[
-        "大样本面板数据分析",
-        "个体效应与解释变量相关性较弱的情况",
-        "需要估计不随时间变化变量的影响",
-        "效率优先的分析场景"
-    ]
+    }
 )
 
 PANEL_HAUSMAN_TEST = ToolDescription(
     name="panel_hausman_test",
-    description="""Hausman检验
-
-功能说明:
-- 检验固定效应模型与随机效应模型的选择
-- 基于模型估计差异的统计检验
-- 帮助选择合适的面板数据模型
-- 提供检验统计量和p值
-
-检验原理:
-- 零假设: 随机效应模型是合适的
-- 备择假设: 固定效应模型更合适
-- 检验统计量服从卡方分布
-
-决策规则:
-- p值 < 0.05: 拒绝零假设，选择固定效应模型
-- p值 >= 0.05: 不拒绝零假设，选择随机效应模型
-
-数据要求:
-- 与固定效应和随机效应模型相同的数据格式""",
+    description="Hausman检验 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV文件路径。必须包含实体ID列和时间列",
-        "file_content": "文件内容字符串。面板数据格式",
-        "file_format": "文件格式: csv/auto",
+        "file_path": "CSV文件路径。CSV格式要求：必须包含实体ID列和时间列",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "y_data": "因变量数据列表",
         "x_data": "自变量数据矩阵",
         "entity_ids": "实体ID列表",
         "time_periods": "时间周期列表",
         "feature_names": "自变量名称列表"
-    },
-    examples=[
-        "检验企业面板数据应该使用固定效应还是随机效应模型",
-        "选择国家面板数据的合适模型形式",
-        "确定个体效应是否与解释变量相关"
-    ],
-    use_cases=[
-        "面板数据模型选择",
-        "固定效应与随机效应比较",
-        "模型设定检验",
-        "实证研究模型验证"
-    ]
+    }
 )
 
 PANEL_UNIT_ROOT_TEST = ToolDescription(
     name="panel_unit_root_test",
-    description="""面板单位根检验
-
-功能说明:
-- 检验面板数据中变量的平稳性
-- 支持多种面板单位根检验方法
-- 检测面板数据的非平稳性
-- 为面板协整分析提供基础
-
-检验类型:
-- levinlin: Levin-Lin-Chu检验，假设共同单位根过程
-- 其他方法: 支持多种面板单位根检验
-
-数据要求:
-- 至少3个实体，每个实体至少5个时间点
-- 平衡或不平衡面板数据
-- 包含实体ID和时间信息
-
-应用意义:
-- 平稳性是面板数据建模的前提
-- 非平稳数据可能导致伪回归
-- 为面板协整分析做准备""",
+    description="面板单位根检验 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV文件路径。必须包含实体ID列和时间列，数据量要求: 至少3个实体，每个实体至少5个时间点",
-        "file_content": "文件内容字符串。面板数据格式，满足最小数据量要求",
-        "file_format": "文件格式: csv/auto",
-        "data": "时间序列数据，单变量格式",
-        "y_data": "因变量数据(从面板数据转换)",
-        "x_data": "自变量数据(从面板数据转换，通常忽略)",
-        "entity_ids": "实体ID列表，用于识别不同个体",
-        "time_periods": "时间周期列表，用于时间维度识别",
-        "feature_names": "特征名称(从面板数据转换，通常忽略)",
-        "test_type": "检验类型: levinlin(默认)/其他面板单位根检验方法"
-    },
-    examples=[
-        "检验各国GDP面板数据是否平稳",
-        "检测公司股价面板数据的单位根",
-        "验证宏观经济面板变量的平稳性"
-    ],
-    use_cases=[
-        "面板数据平稳性检验",
-        "面板协整分析前提检验",
-        "面板数据建模前的诊断",
-        "非平稳面板数据处理"
-    ]
+        "file_path": "CSV文件路径。CSV格式要求：必须包含实体ID列和时间列。数据量要求：至少3个实体，每个实体至少5个时间点",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "data": "面板数据（从文件解析后的数据）",
+        "y_data": "需要检验的变量数据",
+        "x_data": "自变量数据（通常不用）",
+        "entity_ids": "实体ID列表",
+        "time_periods": "时间周期列表",
+        "feature_names": "变量名称列表",
+        "test_type": "检验类型(levinlin/ips/adf)"
+    }
 )
 
 
@@ -429,108 +181,41 @@ PANEL_UNIT_ROOT_TEST = ToolDescription(
 
 VAR_MODEL_ANALYSIS = ToolDescription(
     name="var_model_analysis",
-    description="""VAR模型分析
-
-功能说明:
-- 向量自回归(VAR)模型分析
-- 分析多个时间序列变量间的动态关系
-- 估计变量间的相互影响和滞后效应
-- 进行脉冲响应分析和预测
-
-模型特点:
-- 多变量时间序列建模
-- 变量间相互影响分析
-- 滞后效应估计
-- 动态系统建模
-
-信息准则类型:
-- aic: Akaike信息准则
-- bic: Bayesian信息准则
-- hqic: Hannan-Quinn信息准则
-
-应用场景:
-- 宏观经济变量联动分析
-- 金融市场波动传导
-- 多变量预测建模""",
+    description="VAR模型分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "多变量时间序列文件路径。支持CSV/JSON格式",
-        "file_content": "文件内容字符串。多变量时间序列数据",
-        "file_format": "文件格式: csv/json/auto",
-        "data": "多变量时间序列数据字典，如 {'GDP': [值], 'CPI': [值], ...}",
-        "max_lags": "最大滞后阶数，用于模型阶数选择，默认5",
-        "ic": "信息准则类型: aic(默认)/bic/hqic，用于最优滞后阶数选择"
-    },
-    examples=[
-        "分析GDP、CPI、利率等宏观经济变量的动态关系",
-        "研究股票市场、债券市场、外汇市场的联动效应",
-        "预测多变量经济系统的未来走势"
-    ],
-    use_cases=[
-        "宏观经济政策分析",
-        "金融市场联动研究",
-        "多变量预测建模",
-        "动态系统分析"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径，包含多个时间序列变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "data": "多变量时间序列数据字典",
+        "max_lags": "最大滞后阶数，默认5",
+        "ic": "信息准则(aic/bic/hqic)，默认aic"
+    }
 )
 
 VECM_MODEL_ANALYSIS = ToolDescription(
     name="vecm_model_analysis",
-    description="""VECM模型分析
-
-功能说明:
-- 向量误差修正模型(VECM)分析
-- 处理非平稳时间序列的协整关系
-- 估计长期均衡关系和短期调整机制
-- 分析变量间的长期和短期动态
-
-模型特点:
-- 基于VAR模型的协整扩展
-- 长期均衡关系建模
-- 短期调整机制分析
-- 误差修正项估计
-
-确定性项类型:
-- co: 常数项在协整关系中
-- c: 常数项在VAR中
-- ct: 常数项和趋势项
-- none: 无确定性项
-
-应用场景:
-- 非平稳时间序列的长期关系分析
-- 经济变量的均衡关系研究
-- 协整系统的动态调整分析""",
+    description="VECM模型分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "多变量时间序列文件路径。支持非平稳时间序列",
-        "file_content": "文件内容字符串。多变量非平稳时间序列",
-        "file_format": "文件格式: csv/json/auto",
+        "file_path": "CSV/JSON/TXT文件路径，包含协整的时间序列变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "data": "多变量时间序列数据字典",
-        "coint_rank": "协整秩，表示协整关系数量，默认1",
-        "deterministic": "确定性项类型: co(默认)/c/ct/none",
-        "max_lags": "最大滞后阶数，用于模型估计，默认5"
-    },
-    examples=[
-        "分析GDP和消费的长期均衡关系",
-        "研究汇率和利率的协整关系",
-        "估计股票价格和交易量的误差修正机制"
-    ],
-    use_cases=[
-        "非平稳时间序列建模",
-        "长期均衡关系分析",
-        "协整系统动态研究",
-        "经济变量均衡分析"
-    ]
+        "coint_rank": "协整秩，默认1",
+        "deterministic": "确定性项(co/ci/lo/li)，默认co",
+        "max_lags": "最大滞后阶数，默认5"
+    }
 )
 
 GARCH_MODEL_ANALYSIS = ToolDescription(
     name="garch_model_analysis",
     description="GARCH模型分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
+        "file_path": "CSV/JSON/TXT文件路径，包含单个时间序列",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "data": "时间序列数据",
-        "order": "GARCH模型阶数",
-        "dist": "误差分布类型"
+        "order": "GARCH阶数(p,q)，默认(1,1)",
+        "dist": "误差分布(normal/t/skewt)，默认normal"
     }
 )
 
@@ -538,15 +223,15 @@ STATE_SPACE_MODEL_ANALYSIS = ToolDescription(
     name="state_space_model_analysis",
     description="状态空间模型分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
+        "file_path": "CSV/JSON/TXT文件路径，包含时间序列数据",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "data": "时间序列数据",
-        "state_dim": "状态维度",
-        "observation_dim": "观测维度",
-        "trend": "是否包含趋势项",
-        "seasonal": "是否包含季节项",
-        "period": "季节周期"
+        "state_dim": "状态维度，默认1",
+        "observation_dim": "观测维度，默认1",
+        "trend": "是否包含趋势项，默认True",
+        "seasonal": "是否包含季节项，默认False",
+        "period": "季节周期，默认12"
     }
 )
 
@@ -554,12 +239,12 @@ VARIANCE_DECOMPOSITION_ANALYSIS = ToolDescription(
     name="variance_decomposition_analysis",
     description="方差分解分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
-        "data": "多变量时间序列数据",
-        "periods": "分解期数",
-        "max_lags": "最大滞后阶数"
+        "file_path": "CSV/JSON/TXT文件路径，包含多个时间序列变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "data": "多变量时间序列数据字典",
+        "periods": "预测期数，默认10",
+        "max_lags": "最大滞后阶数，默认5"
     }
 )
 
@@ -570,206 +255,60 @@ VARIANCE_DECOMPOSITION_ANALYSIS = ToolDescription(
 
 RANDOM_FOREST_REGRESSION_ANALYSIS = ToolDescription(
     name="random_forest_regression_analysis",
-    description="""随机森林回归分析
-
-📊 功能说明：
-随机森林通过构建多个决策树并集成结果，能够处理复杂的非线性关系和特征交互。
-
-📈 算法特点：
-- 集成学习：多个决策树投票或平均结果
-- 稳健性：对异常值和噪声数据稳健
-- 特征重要性：自动计算特征重要性分数
-- 袋外评估：使用袋外样本进行模型评估
-- 并行训练：支持并行化训练加速
-
-💡 适用场景：
-- 复杂非线性关系建模
-- 特征交互分析
-- 稳健预测需求
-- 特征重要性评估
-- 大数据集处理
-
-⚠️ 注意事项：
-- 黑盒模型，可解释性较差
-- 内存消耗较大（树的数量多时）
-- 训练时间随树数量增加
-- 可能过度拟合噪声数据
-
-🔧 参数建议：
-- n_estimators: 树的数量，默认100
-  - 小数据集: 50-100
-  - 大数据集: 100-500
-- max_depth: 最大深度，默认None（无限制）
-  - 控制过拟合: 5-15
-  - 复杂关系: None（无限制）
-
-📋 数据要求：
-- 至少10个样本
-- 数值型和类别型数据
-- 支持缺失值处理""",
+    description="随机森林回归 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV/JSON文件路径。CSV格式: 最后一列为因变量，其余列为自变量",
-        "file_content": "文件内容字符串。JSON格式: {'y': [因变量], 'x1': [自变量1], ...}",
-        "file_format": "文件格式: csv/json/auto",
-        "y_data": "因变量数据列表，数值格式，如 [1.2, 3.4, 5.6, ...]",
-        "x_data": "自变量数据矩阵，二维列表格式，如 [[1, 2], [3, 4], [5, 6], ...]",
-        "feature_names": "自变量名称列表，如 ['GDP', 'Population', 'Investment']",
-        "n_estimators": "决策树数量，控制模型复杂度和稳定性，默认100",
-        "max_depth": "决策树最大深度，控制过拟合，默认None（无限制）"
-    },
-    examples=[
-        "预测房价与房屋特征的非线性关系",
-        "分析消费者行为与营销变量的复杂交互",
-        "评估经济指标对股票收益的影响"
-    ],
-    use_cases=[
-        "复杂非线性关系建模",
-        "特征重要性分析",
-        "稳健预测建模",
-        "大数据集处理",
-        "集成学习应用"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "y_data": "因变量数据",
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "n_estimators": "树的数量，默认100",
+        "max_depth": "树的最大深度，默认None（不限制）"
+    }
 )
 
 GRADIENT_BOOSTING_REGRESSION_ANALYSIS = ToolDescription(
     name="gradient_boosting_regression_analysis",
-    description="""梯度提升树回归分析
-
-📊 功能说明：
-梯度提升树通过顺序构建决策树，每棵树修正前一棵树的错误，能够处理复杂的非线性关系。
-
-📈 算法特点：
-- 顺序学习：每棵树学习前一棵树的残差
-- 高精度：通常具有很高的预测精度
-- 特征重要性：自动计算特征重要性
-- 灵活性强：可处理各种类型的数据
-- 正则化：内置正则化防止过拟合
-
-💡 适用场景：
-- 高精度预测需求
-- 复杂非线性关系
-- 小样本高维数据
-- 竞赛和性能要求高的场景
-- 特征重要性分析
-
-⚠️ 注意事项：
-- 对参数敏感，需要仔细调优
-- 训练时间较长
-- 可能过度拟合噪声数据
-- 内存消耗较大
-
-🔧 参数建议：
-- n_estimators: 树的数量，默认100
-  - 小数据集: 50-200
-  - 大数据集: 200-1000
-- learning_rate: 学习率，默认0.1
-  - 保守学习: 0.01-0.1
-  - 快速收敛: 0.1-0.3
-- max_depth: 最大深度，默认3
-  - 简单关系: 2-4
-  - 复杂关系: 5-8
-
-📋 数据要求：
-- 至少10个样本
-- 数值型和类别型数据
-- 建议进行数据标准化""",
+    description="梯度提升树回归 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV/JSON文件路径。CSV格式: 最后一列为因变量，其余列为自变量",
-        "file_content": "文件内容字符串。JSON格式: {'y': [因变量], 'x1': [自变量1], ...}",
-        "file_format": "文件格式: csv/json/auto",
-        "y_data": "因变量数据列表，数值格式，如 [1.2, 3.4, 5.6, ...]",
-        "x_data": "自变量数据矩阵，二维列表格式，如 [[1, 2], [3, 4], [5, 6], ...]",
-        "feature_names": "自变量名称列表，如 ['GDP', 'Population', 'Investment']",
-        "n_estimators": "提升阶段执行的树数量，控制模型复杂度，默认100",
-        "learning_rate": "学习率，控制每棵树的贡献程度，默认0.1",
-        "max_depth": "单个回归估计器的最大深度，控制过拟合，默认3"
-    },
-    examples=[
-        "高精度预测股票价格走势",
-        "分析复杂的经济指标关系",
-        "预测消费者购买行为的精确概率",
-        "竞赛级别的预测建模"
-    ],
-    use_cases=[
-        "高精度预测建模",
-        "复杂非线性关系分析",
-        "特征重要性评估",
-        "小样本高维数据处理",
-        "竞赛级别模型构建"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "y_data": "因变量数据",
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "n_estimators": "提升轮数，默认100",
+        "learning_rate": "学习率，默认0.1",
+        "max_depth": "树的最大深度，默认3"
+    }
 )
 
 LASSO_REGRESSION_ANALYSIS = ToolDescription(
     name="lasso_regression_analysis",
-    description="""Lasso回归分析
-
-📊 功能说明：
-Lasso回归使用L1正则化进行特征选择和稀疏建模，能够自动将不重要的特征系数压缩为0。
-
-📈 算法特点：
-- 特征选择：自动识别重要特征，压缩冗余特征系数为0
-- 稀疏解：产生稀疏的系数向量，提高模型可解释性
-- 处理多重共线性：对高度相关的特征进行选择
-- 正则化强度控制：通过alpha参数控制特征选择的严格程度
-
-💡 适用场景：
-- 高维数据特征选择（特征数量 > 样本数量）
-- 多重共线性问题
-- 稀疏建模需求
-- 可解释性要求高的场景
-- 变量筛选和降维
-
-⚠️ 注意事项：
-- 对alpha参数敏感，建议尝试多个值（如0.01, 0.1, 1.0, 10.0）
-- 可能过度压缩重要特征，导致信息损失
-- 需要数据标准化
-- R²为负值时表明模型性能比简单均值预测更差
-- 样本量过小时可能不稳定
-
-🔧 参数建议：
-- alpha: 正则化强度，默认1.0
-  - 小alpha(0.01-0.1): 轻微正则化，保留更多特征
-  - 中等alpha(0.1-1.0): 平衡特征选择和模型拟合
-  - 大alpha(>1.0): 强正则化，压缩更多特征
-
-📋 数据要求：
-- 至少5个样本
-- 数值型数据
-- 建议特征数量不超过样本数量的80%""",
+    description="Lasso回归 - 支持文件输入",
     field_descriptions={
-        "file_path": "CSV/JSON文件路径。CSV格式: 最后一列为因变量，其余列为自变量",
-        "file_content": "文件内容字符串。JSON格式: {'y': [因变量], 'x1': [自变量1], ...}",
-        "file_format": "文件格式: csv/json/auto",
-        "y_data": "因变量数据列表，数值格式，如 [1.2, 3.4, 5.6, ...]",
-        "x_data": "自变量数据矩阵，二维列表格式，如 [[1, 2], [3, 4], [5, 6], ...]",
-        "feature_names": "自变量名称列表，如 ['GDP', 'Population', 'Investment']",
-        "alpha": "正则化强度参数，控制特征选择的严格程度，默认1.0。建议尝试多个值进行调优"
-    },
-    examples=[
-        "从100个经济指标中选择影响GDP增长的关键因素",
-        "在消费者行为数据中识别最重要的预测变量",
-        "处理高度相关的宏观经济变量进行预测建模"
-    ],
-    use_cases=[
-        "高维数据特征选择",
-        "变量重要性排序",
-        "多重共线性处理",
-        "稀疏线性建模",
-        "可解释机器学习"
-    ]
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
+        "y_data": "因变量数据",
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "alpha": "正则化强度，默认1.0"
+    }
 )
 
 RIDGE_REGRESSION_ANALYSIS = ToolDescription(
     name="ridge_regression_analysis",
     description="Ridge回归 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "y_data": "因变量数据",
-        "x_data": "自变量数据",
-        "feature_names": "特征名称",
-        "alpha": "正则化参数"
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "alpha": "正则化强度，默认1.0"
     }
 )
 
@@ -777,15 +316,15 @@ CROSS_VALIDATION_ANALYSIS = ToolDescription(
     name="cross_validation_analysis",
     description="交叉验证 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "y_data": "因变量数据",
-        "x_data": "自变量数据",
-        "feature_names": "特征名称",
-        "model_type": "模型类型",
-        "cv_folds": "交叉验证折数",
-        "scoring": "评分指标"
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "model_type": "模型类型(random_forest/gradient_boosting/lasso/ridge)，默认random_forest",
+        "cv_folds": "交叉验证折数，默认5",
+        "scoring": "评分指标(r2/mse/mae)，默认r2"
     }
 )
 
@@ -793,104 +332,79 @@ FEATURE_IMPORTANCE_ANALYSIS_TOOL = ToolDescription(
     name="feature_importance_analysis_tool",
     description="特征重要性分析 - 支持文件输入",
     field_descriptions={
-        "file_path": "文件路径",
-        "file_content": "文件内容",
-        "file_format": "文件格式",
+        "file_path": "CSV/JSON/TXT文件路径，最后一列为因变量",
+        "file_content": "CSV/JSON/TXT文件内容字符串",
+        "file_format": "文件格式(csv/json/txt/auto)",
         "y_data": "因变量数据",
-        "x_data": "自变量数据",
-        "feature_names": "特征名称",
-        "method": "分析方法",
-        "top_k": "显示前K个重要特征"
+        "x_data": "自变量数据矩阵",
+        "feature_names": "特征名称列表",
+        "method": "分析方法(random_forest/gradient_boosting/permutation)，默认random_forest",
+        "top_k": "返回前K个重要特征，默认5"
     }
 )
 
 
 # ============================================================================
-# 工具描述映射
+# 辅助函数
 # ============================================================================
 
-TOOL_DESCRIPTIONS: Dict[str, ToolDescription] = {
-    # 基础统计工具
-    "descriptive_statistics": DESCRIPTIVE_STATISTICS,
-    "ols_regression": OLS_REGRESSION,
-    "hypothesis_testing": HYPOTHESIS_TESTING,
-    "time_series_analysis": TIME_SERIES_ANALYSIS,
-    "correlation_analysis": CORRELATION_ANALYSIS,
-    
-    # 面板数据工具
-    "panel_fixed_effects": PANEL_FIXED_EFFECTS,
-    "panel_random_effects": PANEL_RANDOM_EFFECTS,
-    "panel_hausman_test": PANEL_HAUSMAN_TEST,
-    "panel_unit_root_test": PANEL_UNIT_ROOT_TEST,
-    
-    # 高级时间序列工具
-    "var_model_analysis": VAR_MODEL_ANALYSIS,
-    "vecm_model_analysis": VECM_MODEL_ANALYSIS,
-    "garch_model_analysis": GARCH_MODEL_ANALYSIS,
-    "state_space_model_analysis": STATE_SPACE_MODEL_ANALYSIS,
-    "variance_decomposition_analysis": VARIANCE_DECOMPOSITION_ANALYSIS,
-    
-    # 机器学习工具
-    "random_forest_regression_analysis": RANDOM_FOREST_REGRESSION_ANALYSIS,
-    "gradient_boosting_regression_analysis": GRADIENT_BOOSTING_REGRESSION_ANALYSIS,
-    "lasso_regression_analysis": LASSO_REGRESSION_ANALYSIS,
-    "ridge_regression_analysis": RIDGE_REGRESSION_ANALYSIS,
-    "cross_validation_analysis": CROSS_VALIDATION_ANALYSIS,
-    "feature_importance_analysis_tool": FEATURE_IMPORTANCE_ANALYSIS_TOOL,
-}
-
-
-def get_tool_description(tool_name: str) -> ToolDescription:
+def get_tool_description(tool_name: str) -> str:
     """获取工具描述"""
-    if tool_name not in TOOL_DESCRIPTIONS:
-        raise ValueError(f"未知的工具名称: {tool_name}")
-    return TOOL_DESCRIPTIONS[tool_name]
-
-
-def get_all_tool_names() -> List[str]:
-    """获取所有工具名称"""
-    return list(TOOL_DESCRIPTIONS.keys())
+    tool_map = {
+        "descriptive_statistics": DESCRIPTIVE_STATISTICS,
+        "ols_regression": OLS_REGRESSION,
+        "hypothesis_testing": HYPOTHESIS_TESTING,
+        "time_series_analysis": TIME_SERIES_ANALYSIS,
+        "correlation_analysis": CORRELATION_ANALYSIS,
+        "panel_fixed_effects": PANEL_FIXED_EFFECTS,
+        "panel_random_effects": PANEL_RANDOM_EFFECTS,
+        "panel_hausman_test": PANEL_HAUSMAN_TEST,
+        "panel_unit_root_test": PANEL_UNIT_ROOT_TEST,
+        "var_model_analysis": VAR_MODEL_ANALYSIS,
+        "vecm_model_analysis": VECM_MODEL_ANALYSIS,
+        "garch_model_analysis": GARCH_MODEL_ANALYSIS,
+        "state_space_model_analysis": STATE_SPACE_MODEL_ANALYSIS,
+        "variance_decomposition_analysis": VARIANCE_DECOMPOSITION_ANALYSIS,
+        "random_forest_regression_analysis": RANDOM_FOREST_REGRESSION_ANALYSIS,
+        "gradient_boosting_regression_analysis": GRADIENT_BOOSTING_REGRESSION_ANALYSIS,
+        "lasso_regression_analysis": LASSO_REGRESSION_ANALYSIS,
+        "ridge_regression_analysis": RIDGE_REGRESSION_ANALYSIS,
+        "cross_validation_analysis": CROSS_VALIDATION_ANALYSIS,
+        "feature_importance_analysis_tool": FEATURE_IMPORTANCE_ANALYSIS_TOOL
+    }
+    
+    tool = tool_map.get(tool_name)
+    if tool:
+        return tool.get_full_description()
+    return ""
 
 
 def get_field_description(tool_name: str, field_name: str, default: str = "") -> str:
-    """获取指定工具的字段描述"""
-    tool_desc = get_tool_description(tool_name)
-    return tool_desc.get_field_description(field_name, default)
-
-
-# 导出主要类和函数
-__all__ = [
-    "ToolDescription",
-    "TOOL_DESCRIPTIONS",
-    "get_tool_description",
-    "get_all_tool_names",
-    "get_field_description",
+    """获取字段描述"""
+    tool_map = {
+        "descriptive_statistics": DESCRIPTIVE_STATISTICS,
+        "ols_regression": OLS_REGRESSION,
+        "hypothesis_testing": HYPOTHESIS_TESTING,
+        "time_series_analysis": TIME_SERIES_ANALYSIS,
+        "correlation_analysis": CORRELATION_ANALYSIS,
+        "panel_fixed_effects": PANEL_FIXED_EFFECTS,
+        "panel_random_effects": PANEL_RANDOM_EFFECTS,
+        "panel_hausman_test": PANEL_HAUSMAN_TEST,
+        "panel_unit_root_test": PANEL_UNIT_ROOT_TEST,
+        "var_model_analysis": VAR_MODEL_ANALYSIS,
+        "vecm_model_analysis": VECM_MODEL_ANALYSIS,
+        "garch_model_analysis": GARCH_MODEL_ANALYSIS,
+        "state_space_model_analysis": STATE_SPACE_MODEL_ANALYSIS,
+        "variance_decomposition_analysis": VARIANCE_DECOMPOSITION_ANALYSIS,
+        "random_forest_regression_analysis": RANDOM_FOREST_REGRESSION_ANALYSIS,
+        "gradient_boosting_regression_analysis": GRADIENT_BOOSTING_REGRESSION_ANALYSIS,
+        "lasso_regression_analysis": LASSO_REGRESSION_ANALYSIS,
+        "ridge_regression_analysis": RIDGE_REGRESSION_ANALYSIS,
+        "cross_validation_analysis": CROSS_VALIDATION_ANALYSIS,
+        "feature_importance_analysis_tool": FEATURE_IMPORTANCE_ANALYSIS_TOOL
+    }
     
-    # 基础统计工具
-    "DESCRIPTIVE_STATISTICS",
-    "OLS_REGRESSION",
-    "HYPOTHESIS_TESTING",
-    "TIME_SERIES_ANALYSIS",
-    "CORRELATION_ANALYSIS",
-    
-    # 面板数据工具
-    "PANEL_FIXED_EFFECTS",
-    "PANEL_RANDOM_EFFECTS",
-    "PANEL_HAUSMAN_TEST",
-    "PANEL_UNIT_ROOT_TEST",
-    
-    # 高级时间序列工具
-    "VAR_MODEL_ANALYSIS",
-    "VECM_MODEL_ANALYSIS",
-    "GARCH_MODEL_ANALYSIS",
-    "STATE_SPACE_MODEL_ANALYSIS",
-    "VARIANCE_DECOMPOSITION_ANALYSIS",
-    
-    # 机器学习工具
-    "RANDOM_FOREST_REGRESSION_ANALYSIS",
-    "GRADIENT_BOOSTING_REGRESSION_ANALYSIS",
-    "LASSO_REGRESSION_ANALYSIS",
-    "RIDGE_REGRESSION_ANALYSIS",
-    "CROSS_VALIDATION_ANALYSIS",
-    "FEATURE_IMPORTANCE_ANALYSIS_TOOL",
-]
+    tool = tool_map.get(tool_name)
+    if tool:
+        return tool.get_field_description(field_name, default)
+    return default

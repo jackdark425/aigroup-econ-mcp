@@ -10,9 +10,9 @@ AIGroup 计量经济学 MCP 服务
 - 模型诊断
 """
 
-__version__ = "1.0.0"
+__version__ = "1.3.2"
 __author__ = "AIGroup"
-__description__ = "专业计量经济学MCP工具 - 让大模型直接进行数据分析（重构版：工具描述模块化）"
+__description__ = "专业计量经济学MCP工具 - 让大模型直接进行数据分析"
 
 from .server import create_mcp_server
 

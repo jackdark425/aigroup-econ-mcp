@@ -13,7 +13,7 @@ import base64
 
 
 class FileParser:
-    """文件解析器，支持CSV和JSON格式"""
+    """文件解析器，支持CSV、JSON和TXT格式"""
     
     @staticmethod
     def parse_file_path(
@@ -45,6 +45,8 @@ class FileParser:
                 file_format = "csv"
             elif ext in ['.json', '.jsonl']:
                 file_format = "json"
+            elif ext == '.txt':
+                file_format = 'txt'
             else:
                 # 尝试从内容检测
                 with open(path, 'r', encoding='utf-8') as f:
@@ -88,6 +90,8 @@ class FileParser:
         
         if file_format == "csv":
             return FileParser._parse_csv(decoded_content)
+        elif file_format == "txt":
+            return FileParser._parse_txt(decoded_content)
         elif file_format == "json":
             return FileParser._parse_json(decoded_content)
         else:
@@ -104,6 +108,30 @@ class FileParser:
             pass
         
         # 检测CSV特征
+
+        # 检测TXT特征
+        lines = content.strip().split('\n')
+        if lines:
+            first_line = lines[0].strip()
+            # 检查是否为键值对格式
+            if ':' in first_line or '=' in first_line:
+                return "txt"
+            
+            # 尝试解析为纯数值
+            try:
+                float(first_line)
+                return "txt"
+            except ValueError:
+                # 尝试按空格拆分并检查
+                parts = first_line.split()
+                if parts:
+                    try:
+                        for part in parts:
+                            float(part)
+                        return "txt"
+                    except ValueError:
+                        pass
+        
         if ',' in content or '\t' in content:
             return "csv"
         
@@ -254,6 +282,176 @@ class FileParser:
             return FileParser._parse_json(json.dumps(json_data["data"]))
         
         raise ValueError("不支持的JSON数据格式")
+
+    
+    @staticmethod
+    def _parse_txt(content: str) -> Dict[str, Any]:
+        """
+        解析TXT文件
+        
+        支持的格式：
+        1. 单列数值（每行一个数值）
+        2. 空格/制表符分隔的多列数值
+        3. 带标注的键值对（变量名: 数值 或 变量名 数值）
+        """
+        lines = [line.strip() for line in content.strip().split('\n') if line.strip()]
+        if not lines:
+            raise ValueError("TXT文件为空")
+        
+        # 检测格式类型
+        first_line = lines[0]
+        
+        # 格式1: 检测是否为键值对格式（包含冒号或等号）
+        if ':' in first_line or '=' in first_line:
+            return FileParser._parse_txt_keyvalue(lines)
+        
+        # 格式2: 检测是否包含空格或制表符（多列数据）
+        if ' ' in first_line or '\t' in first_line:
+            return FileParser._parse_txt_multicolumn(lines)
+        
+        # 格式3: 单列数值
+        return FileParser._parse_txt_single_column(lines)
+    
+    @staticmethod
+    def _parse_txt_single_column(lines: List[str]) -> Dict[str, Any]:
+        """解析单列TXT数据（每行一个数值）"""
+        data_list = []
+        for i, line in enumerate(lines, 1):
+            try:
+                value = float(line)
+                data_list.append(value)
+            except ValueError:
+                raise ValueError(f"第{i}行无法解析为数值: {line}")
+        
+        if not data_list:
+            raise ValueError("TXT文件中没有有效的数值数据")
+        
+        parsed_data = {"data": data_list}
+        
+        return {
+            "data": parsed_data,
+            "variables": ["data"],
+            "format": "txt",
+            "data_type": "univariate",
+            "n_variables": 1,
+            "n_observations": len(data_list)
+        }
+    
+    @staticmethod
+    def _parse_txt_multicolumn(lines: List[str]) -> Dict[str, Any]:
+        """解析多列TXT数据（空格或制表符分隔）"""
+        # 检测分隔符
+        first_line = lines[0]
+        if '\t' in first_line:
+            delimiter = '\t'
+        else:
+            delimiter = None  # 使用split()默认行为
+        
+        # 解析所有行
+        all_rows = []
+        for line in lines:
+            if delimiter:
+                parts = line.split(delimiter)
+            else:
+                parts = line.split()
+            all_rows.append([p.strip() for p in parts if p.strip()])
+        
+        if not all_rows:
+            raise ValueError("TXT文件中没有数据")
+        
+        # 检测是否有表头
+        has_header = False
+        first_row = all_rows[0]
+        for cell in first_row:
+            try:
+                float(cell)
+            except ValueError:
+                has_header = True
+                break
+        
+        if has_header:
+            headers = first_row
+            data_rows = all_rows[1:]
+        else:
+            n_cols = len(first_row)
+            headers = [f"var{i+1}" for i in range(n_cols)]
+            data_rows = all_rows
+        
+        # 转换为数值数据
+        parsed_data = {}
+        for i, header in enumerate(headers):
+            column_data = []
+            for row in data_rows:
+                if i < len(row):
+                    try:
+                        value = float(row[i])
+                        column_data.append(value)
+                    except ValueError:
+                        column_data.append(row[i])
+            
+            if column_data:
+                parsed_data[header] = column_data
+        
+        if not parsed_data:
+            raise ValueError("TXT文件中没有有效的数据")
+        
+        data_type = FileParser._detect_data_type(parsed_data)
+        
+        return {
+            "data": parsed_data,
+            "variables": list(parsed_data.keys()),
+            "format": "txt",
+            "data_type": data_type,
+            "n_variables": len(parsed_data),
+            "n_observations": len(next(iter(parsed_data.values())))
+        }
+    
+    @staticmethod
+    def _parse_txt_keyvalue(lines: List[str]) -> Dict[str, Any]:
+        """解析键值对格式的TXT数据"""
+        parsed_data = {}
+        
+        for line in lines:
+            if ':' in line:
+                separator = ':'
+            elif '=' in line:
+                separator = '='
+            else:
+                continue
+            
+            parts = line.split(separator, 1)
+            if len(parts) != 2:
+                continue
+            
+            var_name = parts[0].strip()
+            value_str = parts[1].strip()
+            values = value_str.split()
+            
+            try:
+                if len(values) == 1:
+                    parsed_data[var_name] = [float(values[0])]
+                else:
+                    parsed_data[var_name] = [float(v) for v in values]
+            except ValueError:
+                if len(values) == 1:
+                    parsed_data[var_name] = [values[0]]
+                else:
+                    parsed_data[var_name] = values
+        
+        if not parsed_data:
+            raise ValueError("TXT文件中没有有效的键值对数据")
+        
+        data_type = FileParser._detect_data_type(parsed_data)
+        n_observations = max(len(v) for v in parsed_data.values())
+        
+        return {
+            "data": parsed_data,
+            "variables": list(parsed_data.keys()),
+            "format": "txt",
+            "data_type": data_type,
+            "n_variables": len(parsed_data),
+            "n_observations": n_observations
+        }
     
     @staticmethod
     def _detect_delimiter(line: str) -> str:
