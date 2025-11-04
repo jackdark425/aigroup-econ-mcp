@@ -1,34 +1,104 @@
 """
-最大似然估计 (MLE) 模型实现
+最大似然估计(MLE)工具实现
+基于现有计量经济学代码重构为MCP工具
+支持文件输入和多种输出格式
 """
 
-from typing import List, Dict, Any, Optional, Callable
-from dataclasses import dataclass
-from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional, Union
 import numpy as np
-import pandas as pd
 from scipy.optimize import minimize
 from scipy import stats
+from .data_loader import MLEDataLoader
+from .output_formatter import OutputFormatter
 
-from tools.decorators import with_file_support_decorator as econometric_tool, validate_input
 
-
-class MLEResult(BaseModel):
+class MLEResult:
     """最大似然估计结果"""
-    parameters: List[float] = Field(..., description="估计参数")
-    std_errors: List[float] = Field(..., description="参数标准误")
-    conf_int_lower: List[float] = Field(..., description="置信区间下界")
-    conf_int_upper: List[float] = Field(..., description="置信区间上界")
-    log_likelihood: float = Field(..., description="对数似然值")
-    aic: float = Field(..., description="赤池信息准则")
-    bic: float = Field(..., description="贝叶斯信息准则")
-    convergence: bool = Field(..., description="是否收敛")
-    n_obs: int = Field(..., description="观测数量")
-    param_names: List[str] = Field(..., description="参数名称")
+    
+    def __init__(
+        self,
+        parameters: List[float],
+        std_errors: List[float],
+        conf_int_lower: List[float],
+        conf_int_upper: List[float],
+        log_likelihood: float,
+        aic: float,
+        bic: float,
+        convergence: bool,
+        n_obs: int,
+        param_names: List[str]
+    ):
+        self.parameters = parameters
+        self.std_errors = std_errors
+        self.conf_int_lower = conf_int_lower
+        self.conf_int_upper = conf_int_upper
+        self.log_likelihood = log_likelihood
+        self.aic = aic
+        self.bic = bic
+        self.convergence = convergence
+        self.n_obs = n_obs
+        self.param_names = param_names
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        return {
+            "parameters": self.parameters,
+            "std_errors": self.std_errors,
+            "conf_int_lower": self.conf_int_lower,
+            "conf_int_upper": self.conf_int_upper,
+            "log_likelihood": self.log_likelihood,
+            "aic": self.aic,
+            "bic": self.bic,
+            "convergence": self.convergence,
+            "n_obs": self.n_obs,
+            "param_names": self.param_names
+        }
 
 
-@econometric_tool("mle_estimation")
-@validate_input(data_type="econometric")
+def mle_estimation_from_file(
+    file_path: str,
+    distribution: str = "normal",
+    initial_params: Optional[List[float]] = None,
+    confidence_level: float = 0.95,
+    output_format: str = "markdown",
+    save_path: Optional[str] = None
+) -> Union[MLEResult, str]:
+    """
+    从文件执行MLE估计（支持txt/json/csv/excel）
+    
+    Args:
+        file_path: 数据文件路径
+        distribution: 分布类型 ('normal', 'poisson', 'exponential')
+        initial_params: 初始参数值
+        confidence_level: 置信水平
+        output_format: 输出格式 ("markdown" 或 "txt")
+        save_path: 可选的保存路径
+        
+    Returns:
+        如果指定了save_path，返回格式化的字符串；否则返回MLEResult对象
+    """
+    # 从文件加载数据
+    data_dict = MLEDataLoader.load_from_file(file_path)
+    
+    # 执行MLE估计
+    result = mle_estimation(
+        data=data_dict["data"],
+        distribution=distribution,
+        initial_params=initial_params,
+        confidence_level=confidence_level
+    )
+    
+    # 格式化输出
+    formatted_output = OutputFormatter.format_mle_result(result, output_format)
+    
+    # 如果指定了保存路径，保存并返回消息
+    if save_path:
+        OutputFormatter.save_to_file(formatted_output, save_path)
+        return f"分析完成！\n\n{formatted_output}\n\n{OutputFormatter.save_to_file(formatted_output, save_path)}"
+    
+    return formatted_output
+
+
 def mle_estimation(
     data: List[float],
     distribution: str = "normal",
@@ -36,7 +106,7 @@ def mle_estimation(
     confidence_level: float = 0.95
 ) -> MLEResult:
     """
-    最大似然估计
+    最大似然估计（直接数据输入）
     
     Args:
         data: 数据

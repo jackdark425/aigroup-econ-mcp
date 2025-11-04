@@ -13,7 +13,7 @@ from tools.validation import ValidationError, validate_econometric_data, validat
 from tools.cache import cache_result, cache_model, global_econometric_cache
 from tools.monitoring import monitor_performance, track_progress, global_performance_monitor
 from tools.file_parser import FileParser
-from ..config import get_config, econometric_config
+from config import get_config, econometric_config
 
 
 def with_file_input(tool_type: str):

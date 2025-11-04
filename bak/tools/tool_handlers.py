@@ -6,6 +6,12 @@
 from typing import Dict, List, Any, Optional
 from mcp.types import CallToolResult, TextContent
 
+# 从basic_parametric_estimation_handler导入处理函数
+from .basic_parametric_estimation_handler import (
+    handle_ols_regression,
+    handle_mle_estimation,
+    handle_gmm_estimation
+)
 
 async def handle_ols_regression(ctx, y_data: List[float], x_data: List[List[float]], 
                                 feature_names: Optional[List[str]] = None, **kwargs) -> CallToolResult:
@@ -430,7 +436,7 @@ async def handle_descriptive_statistics(ctx, data: Dict[str, List[float]], **kwa
 
 # 导入各个工具处理器
 from .descriptive_statistics_handler import handle_descriptive_statistics
-from .regression_handler import handle_ols_regression as handle_old_ols_regression
+# from .regression_handler import handle_ols_regression as handle_old_ols_regression
 from .regression_handler import handle_multiple_regression
 from .hypothesis_testing_handler import handle_hypothesis_testing
 from .time_series_handler import handle_time_series_analysis

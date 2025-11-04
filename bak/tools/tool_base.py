@@ -10,7 +10,7 @@ from functools import wraps
 from tools.validation import ValidationError, validate_econometric_data, validate_model_parameters
 from tools.cache import cache_result, cache_model, global_econometric_cache
 from tools.monitoring import monitor_performance, track_progress, global_performance_monitor
-from ..config import get_config, econometric_config
+from config import get_config, econometric_config
 from .exceptions import EconometricToolError, DataValidationError, ModelFittingError, ConfigurationError
 
 

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from econometrics.decorators import econometric_tool, validate_input
+from tools.decorators import with_file_support_decorator as econometric_tool, validate_input
 
 
 class OLSResult(BaseModel):
