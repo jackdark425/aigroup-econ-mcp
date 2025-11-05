@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "aigroup_econ_mcp"
 version = "1.4.1"
-description = "专业计量经济学MCP工具 - 100%覆盖Stata核心功能，30+项专业分析工具，支持CSV/JSON/TXT格式，让大模型更智能地进行数据分析"
+description = "专业计量经济学MCP工具 - 100%覆盖Stata核心功能，30+项专业分析工具，支持CSV/JSON/TXT/Excel格式，让大模型更智能地进行数据分析"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -25,6 +25,7 @@ dependencies = [
     "psutil>=5.9.0",
     "PyYAML>=6.0",
     "arch>=6.0.0",
+    "openpyxl>=3.0.0",
 ]
 keywords = ["mcp", "economics", "statistics", "regression", "data-analysis", "econometrics", "time-series", "panel-data"]
 classifiers = [

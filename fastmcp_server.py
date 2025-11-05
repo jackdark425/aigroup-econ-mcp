@@ -1,27 +1,36 @@
 """
-AIGroup 计量经济学 MCP 服务器 v2.0 - 适配器版本
-使用适配器模式，复用 econometrics/ 核心算法
+AIGroup 计量经济学 MCP 服务器 v2.1 - 组件化架构
+自动发现和注册工具组件
 """
 
-from typing import List, Optional
+import sys
+import os
+from typing import List, Optional, Union
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
 
-# 导入适配器
-from tools.econometrics_adapter import (
-    ols_adapter,
-    mle_adapter,
-    gmm_adapter
-)
+# 设置Windows控制台编码
+if sys.platform == "win32":
+    try:
+        # 尝试设置UTF-8编码
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        # 如果失败，使用ASCII字符
+        pass
+
+# 导入所有工具组
+from tools.mcp_tool_groups.basic_parametric_tools import BasicParametricTools
+from tools.mcp_tool_groups.time_series_tools import TimeSeriesTools
 
 # 创建 FastMCP 服务器实例
 mcp = FastMCP("aigroup-econ-mcp")
 
-
+# 注册基础参数估计工具
 @mcp.tool()
 async def basic_parametric_estimation_ols(
     y_data: Optional[List[float]] = None,
-    x_data: Optional[List[List[float]]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
     file_path: Optional[str] = None,
     feature_names: Optional[List[str]] = None,
     constant: bool = True,
@@ -30,37 +39,8 @@ async def basic_parametric_estimation_ols(
     save_path: Optional[str] = None,
     ctx: Context[ServerSession, None] = None
 ) -> str:
-    """
-    OLS Regression Analysis (using core algorithm)
-    
-    Supports:
-    - Input: Direct data or file (txt/json/csv/excel)
-    - Output: json/markdown/txt
-    """
-    try:
-        if ctx:
-            await ctx.info("Starting OLS regression (adapter mode)...")
-        
-        result = ols_adapter(
-            y_data=y_data,
-            x_data=x_data,
-            file_path=file_path,
-            feature_names=feature_names,
-            constant=constant,
-            confidence_level=confidence_level,
-            output_format=output_format,
-            save_path=save_path
-        )
-        
-        if ctx:
-            await ctx.info("OLS regression complete")
-        
-        return result
-    except Exception as e:
-        if ctx:
-            await ctx.error(f"Error: {str(e)}")
-        raise
-
+    """OLS Regression Analysis"""
+    return await BasicParametricTools.ols_tool(y_data, x_data, file_path, feature_names, constant, confidence_level, output_format, save_path, ctx)
 
 @mcp.tool()
 async def basic_parametric_estimation_mle(
@@ -73,44 +53,15 @@ async def basic_parametric_estimation_mle(
     save_path: Optional[str] = None,
     ctx: Context[ServerSession, None] = None
 ) -> str:
-    """
-    Maximum Likelihood Estimation (using core algorithm)
-    
-    Supports:
-    - Input: Direct data or file (txt/json/csv/excel)
-    - Output: json/markdown/txt
-    - Distributions: normal/poisson/exponential
-    """
-    try:
-        if ctx:
-            await ctx.info(f"Starting MLE estimation (adapter mode)...")
-        
-        result = mle_adapter(
-            data=data,
-            file_path=file_path,
-            distribution=distribution,
-            initial_params=initial_params,
-            confidence_level=confidence_level,
-            output_format=output_format,
-            save_path=save_path
-        )
-        
-        if ctx:
-            await ctx.info("MLE estimation complete")
-        
-        return result
-    except Exception as e:
-        if ctx:
-            await ctx.error(f"Error: {str(e)}")
-        raise
-
+    """Maximum Likelihood Estimation"""
+    return await BasicParametricTools.mle_tool(data, file_path, distribution, initial_params, confidence_level, output_format, save_path, ctx)
 
 @mcp.tool()
 async def basic_parametric_estimation_gmm(
     y_data: Optional[List[float]] = None,
-    x_data: Optional[List[List[float]]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
     file_path: Optional[str] = None,
-    instruments: Optional[List[List[float]]] = None,
+    instruments: Optional[Union[List[float], List[List[float]]]] = None,
     feature_names: Optional[List[str]] = None,
     constant: bool = True,
     confidence_level: float = 0.95,
@@ -118,98 +69,210 @@ async def basic_parametric_estimation_gmm(
     save_path: Optional[str] = None,
     ctx: Context[ServerSession, None] = None
 ) -> str:
-    """
-    Generalized Method of Moments (using core algorithm with fix)
-    
-    Supports:
-    - Input: Direct data or file (txt/json/csv/excel)
-    - Output: json/markdown/txt
-    - Fixed: j_p_value bug in core algorithm
-    """
+    """Generalized Method of Moments"""
+    return await BasicParametricTools.gmm_tool(y_data, x_data, file_path, instruments, feature_names, constant, confidence_level, output_format, save_path, ctx)
+
+# 注册时间序列工具
+@mcp.tool()
+async def time_series_arima_model(
+    data: Optional[List[float]] = None,
+    file_path: Optional[str] = None,
+    order: tuple = (1, 1, 1),
+    forecast_steps: int = 1,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """ARIMA Time Series Model"""
+    return await TimeSeriesTools.arima_tool(data, file_path, order, forecast_steps, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_series_exponential_smoothing(
+    data: Optional[List[float]] = None,
+    file_path: Optional[str] = None,
+    trend: bool = True,
+    seasonal: bool = False,
+    seasonal_periods: Optional[int] = None,
+    forecast_steps: int = 1,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Exponential Smoothing Model"""
+    return await TimeSeriesTools.exp_smoothing_tool(data, file_path, trend, seasonal, seasonal_periods, forecast_steps, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_series_garch_model(
+    data: Optional[List[float]] = None,
+    file_path: Optional[str] = None,
+    order: tuple = (1, 1),
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """GARCH Volatility Model"""
+    return await TimeSeriesTools.garch_tool(data, file_path, order, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_series_unit_root_tests(
+    data: Optional[List[float]] = None,
+    file_path: Optional[str] = None,
+    test_type: str = "adf",
+    max_lags: Optional[int] = None,
+    regression_type: str = "c",
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Unit Root Tests"""
+    return await TimeSeriesTools.unit_root_tool(data, file_path, test_type, max_lags, regression_type, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_series_var_svar_model(
+    data: Optional[List[List[float]]] = None,
+    file_path: Optional[str] = None,
+    model_type: str = "var",
+    lags: int = 1,
+    variables: Optional[List[str]] = None,
+    a_matrix: Optional[List[List[float]]] = None,
+    b_matrix: Optional[List[List[float]]] = None,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """VAR/SVAR Model"""
+    return await TimeSeriesTools.var_svar_tool(data, file_path, model_type, lags, variables, a_matrix, b_matrix, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_series_cointegration_analysis(
+    data: Optional[List[List[float]]] = None,
+    file_path: Optional[str] = None,
+    analysis_type: str = "johansen",
+    variables: Optional[List[str]] = None,
+    coint_rank: int = 1,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Cointegration Analysis"""
+    return await TimeSeriesTools.cointegration_tool(data, file_path, analysis_type, variables, coint_rank, output_format, save_path, ctx)
+
+@mcp.tool()
+async def panel_data_dynamic_model(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[List[List[float]]] = None,
+    entity_ids: Optional[List[int]] = None,
+    time_periods: Optional[List[int]] = None,
+    file_path: Optional[str] = None,
+    model_type: str = "diff_gmm",
+    lags: int = 1,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Dynamic Panel Data Model"""
+    return await TimeSeriesTools.dynamic_panel_tool(y_data, x_data, entity_ids, time_periods, file_path, model_type, lags, output_format, save_path, ctx)
+
+@mcp.tool()
+async def panel_data_diagnostics(
+    test_type: str = "hausman",
+    fe_coefficients: Optional[List[float]] = None,
+    re_coefficients: Optional[List[float]] = None,
+    fe_covariance: Optional[List[List[float]]] = None,
+    re_covariance: Optional[List[List[float]]] = None,
+    pooled_ssrs: Optional[float] = None,
+    fixed_ssrs: Optional[float] = None,
+    random_ssrs: Optional[float] = None,
+    n_individuals: Optional[int] = None,
+    n_params: Optional[int] = None,
+    n_obs: Optional[int] = None,
+    n_periods: Optional[int] = None,
+    residuals: Optional[List[List[float]]] = None,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Panel Data Diagnostic Tests (Hausman, Pooling F, LM, Within Correlation)"""
+    return await TimeSeriesTools.panel_diagnostics_tool(test_type, fe_coefficients, re_coefficients, fe_covariance, re_covariance, pooled_ssrs, fixed_ssrs, random_ssrs, n_individuals, n_params, n_obs, n_periods, residuals, output_format, save_path, ctx)
+
+@mcp.tool()
+async def panel_var_model(
+    data: Optional[List[List[float]]] = None,
+    entity_ids: Optional[List[int]] = None,
+    time_periods: Optional[List[int]] = None,
+    file_path: Optional[str] = None,
+    lags: int = 1,
+    variables: Optional[List[str]] = None,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Panel Vector Autoregression Model"""
+    return await TimeSeriesTools.panel_var_tool(data, entity_ids, time_periods, file_path, lags, variables, output_format, save_path, ctx)
+
+@mcp.tool()
+async def structural_break_tests(
+    data: Optional[List[float]] = None,
+    file_path: Optional[str] = None,
+    test_type: str = "chow",
+    break_point: Optional[int] = None,
+    max_breaks: int = 5,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Structural Break Tests (Chow, Quandt-Andrews, Bai-Perron)"""
+    return await TimeSeriesTools.structural_break_tool(data, file_path, test_type, break_point, max_breaks, output_format, save_path, ctx)
+
+@mcp.tool()
+async def time_varying_parameter_models(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[List[List[float]]] = None,
+    file_path: Optional[str] = None,
+    model_type: str = "tar",
+    threshold_variable: Optional[List[float]] = None,
+    n_regimes: int = 2,
+    star_type: str = "logistic",
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Time-Varying Parameter Models (TAR, STAR, Markov Switching)"""
+    return await TimeSeriesTools.time_varying_parameter_tool(y_data, x_data, file_path, model_type, threshold_variable, n_regimes, star_type, output_format, save_path, ctx)
+
+
+@mcp.resource("guide://econometrics")
+def get_econometrics_guide() -> str:
+    """Get complete econometrics tools guide"""
     try:
-        if ctx:
-            await ctx.info("Starting GMM estimation (adapter mode)...")
-        
-        result = gmm_adapter(
-            y_data=y_data,
-            x_data=x_data,
-            file_path=file_path,
-            instruments=instruments,
-            feature_names=feature_names,
-            constant=constant,
-            confidence_level=confidence_level,
-            output_format=output_format,
-            save_path=save_path
-        )
-        
-        if ctx:
-            await ctx.info("GMM estimation complete")
-        
-        return result
-    except Exception as e:
-        if ctx:
-            await ctx.error(f"Error: {str(e)}")
-        raise
-
-
-@mcp.resource("config://server")
-def get_server_config() -> str:
-    """Get server configuration"""
-    return """{
-  "server_name": "aigroup-econ-mcp",
-  "version": "2.0.0-adapter",
-  "architecture": "Adapter Pattern (DRY)",
-  "tools": [
-    "basic_parametric_estimation_ols",
-    "basic_parametric_estimation_mle",
-    "basic_parametric_estimation_gmm"
-  ],
-  "description": "Econometrics MCP Tools using adapter pattern - reuses core algorithms from econometrics/"
-}"""
-
-
-@mcp.resource("help://econometrics")
-def get_econometrics_help() -> str:
-    """Get help information"""
-    return """Econometrics Tools Guide (Adapter Version):
-
-THREE CORE TOOLS - Using econometrics/ core algorithms
-
-1. OLS Regression (basic_parametric_estimation_ols)
-   - Reuses: econometrics/basic_parametric_estimation/ols/ols_model.py
-   - Input: Direct (y_data + x_data) or File (file_path)
-   
-2. Maximum Likelihood Estimation (basic_parametric_estimation_mle)
-   - Reuses: econometrics/basic_parametric_estimation/mle/mle_model.py
-   - Input: Direct (data) or File (file_path)
-   - Distributions: normal, poisson, exponential
-   
-3. Generalized Method of Moments (basic_parametric_estimation_gmm)
-   - Reuses: econometrics/basic_parametric_estimation/gmm/gmm_model.py
-   - Input: Direct (y_data + x_data) or File (file_path)
-   - Fixed: j_p_value bug
-
-ARCHITECTURE:
-- Adapter pattern: tools/econometrics_adapter.py
-- Core algorithms: econometrics/basic_parametric_estimation/
-- 84% less duplicate code!
-
-FILE FORMATS: txt, json, csv, excel
-OUTPUT FORMATS: json, markdown, txt
-"""
+        with open("resources/MCP_MASTER_GUIDE.md", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "完整使用指南文件未找到，请检查 resources/MCP_MASTER_GUIDE.md 文件是否存在。"
 
 
 def main():
-    """Start FastMCP server (Adapter version)"""
-    print("AIGroup Econometrics MCP Server v2.0.0 (Adapter)")
-    print("\n🏗️  Architecture: Adapter Pattern")
-    print("📦 Core: econometrics/basic_parametric_estimation/")
-    print("🔌 Adapter: tools/econometrics_adapter.py")
-    print("\nTools: OLS / MLE / GMM")
-    print("Input: Direct data or File (txt/json/csv/excel)")
-    print("Output: json / markdown / txt")
-    print("\n✨ Benefits: 84% less duplicate code, DRY principle")
-    print("\nStarting server...")
+    """Start FastMCP server"""
+    print("=" * 60)
+    print("AIGroup Econometrics MCP Server v2.1.0")
+    print("=" * 60)
+    print("\n架构: 组件化")
+    print("\n已注册工具组:")
+    print(f"  - {BasicParametricTools.name} ({len(BasicParametricTools.get_tools())} tools)")
+    print(f"  - {TimeSeriesTools.name} ({len(TimeSeriesTools.get_tools())} tools)")
+    
+    print(f"\n总工具数: 14")
+    print("\n支持格式:")
+    print("  输入: txt/json/csv/excel (.xlsx, .xls)")
+    print("  输出: json/markdown/txt")
+    
+    print("\n优势:")
+    print("  * 组件化设计")
+    print("  * 易于扩展")
+    print("  * DRY原则")
+    
+    print("\n启动服务器...")
+    print("=" * 60)
     
     mcp.run(transport="stdio")
 
