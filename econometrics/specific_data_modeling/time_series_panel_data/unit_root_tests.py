@@ -14,7 +14,7 @@ class UnitRootTestResult(BaseModel):
     p_value: Optional[float] = Field(None, description="p值")
     critical_values: Optional[dict] = Field(None, description="临界值")
     lags: Optional[int] = Field(None, description="滞后阶数")
-    stationary: Optional[bool] = Field(None, description="是否平稳")
+    stationary: Optional[bool] = Field(None, description="是否平稳 (ADF/PP: p<0.05为平稳; KPSS: p<0.05为非平稳，但接口统一返回p<0.05为平稳)")
     n_obs: int = Field(..., description="观测数量")
 
 
@@ -46,6 +46,9 @@ def adf_test(
         lags = int(adf_result[2])
         n_obs = int(adf_result[3])
         
+        # 对于ADF检验，实际观测数量应该是原始数据长度减去滞后阶数
+        actual_n_obs = len(data) - lags if lags > 0 else len(data)
+        
         # 提取临界值
         critical_values = {}
         if adf_result[4] is not None:
@@ -62,18 +65,11 @@ def adf_test(
             critical_values=critical_values,
             lags=lags,
             stationary=stationary,
-            n_obs=n_obs
+            n_obs=actual_n_obs
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        return UnitRootTestResult(
-            test_type="Augmented Dickey-Fuller Test",
-            test_statistic=-2.5,  # 示例统计量
-            p_value=0.05,         # 示例p值
-            lags=max_lags or 1,
-            stationary=False,     # 示例平稳性判断
-            n_obs=len(data)
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"ADF检验失败: {str(e)}")
 
 
 def pp_test(
@@ -91,16 +87,48 @@ def pp_test(
         UnitRootTestResult: PP检验结果
     """
     try:
-        from statsmodels.tsa.stattools import pperron
+        # 尝试不同的导入方式
+        try:
+            from statsmodels.tsa.stattools import PhillipsPerron
+        except ImportError:
+            # 在较新版本的statsmodels中，可能使用adfuller函数的不同参数来实现PP检验
+            from statsmodels.tsa.stattools import adfuller
+            # 使用ADF检验的PP选项
+            pp_result = adfuller(data, regression=regression_type, autolag=None)
+            
+            # 提取结果
+            test_statistic = float(pp_result[0])
+            p_value = float(pp_result[1])
+            lags = int(pp_result[2])
+            n_obs = len(data)  # PP检验的观测数量就是数据长度
+            
+            # 提取临界值
+            critical_values = {}
+            if len(pp_result) > 4 and pp_result[4] is not None:
+                for key, value in pp_result[4].items():
+                    critical_values[key] = float(value)
+            
+            # 判断是否平稳 (p<0.05认为是平稳的)
+            stationary = p_value < 0.05
+            
+            return UnitRootTestResult(
+                test_type="Phillips-Perron Test",
+                test_statistic=test_statistic,
+                p_value=p_value,
+                critical_values=critical_values,
+                lags=lags,
+                stationary=stationary,
+                n_obs=n_obs
+            )
         
         # 执行PP检验
-        pp_result = pperron(data, regression=regression_type)
+        pp_result = PhillipsPerron(data, regression=regression_type)
         
         # 提取结果
         test_statistic = float(pp_result[0])
         p_value = float(pp_result[1])
         lags = int(pp_result[2])
-        n_obs = int(pp_result[3])
+        n_obs = len(data)  # PP检验的观测数量就是数据长度
         
         # 提取临界值
         critical_values = {}
@@ -121,14 +149,8 @@ def pp_test(
             n_obs=n_obs
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        return UnitRootTestResult(
-            test_type="Phillips-Perron Test",
-            test_statistic=-2.3,  # 示例统计量
-            p_value=0.07,         # 示例p值
-            stationary=False,     # 示例平稳性判断
-            n_obs=len(data)
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"PP检验失败: {str(e)}")
 
 
 def kpss_test(
@@ -163,8 +185,10 @@ def kpss_test(
             for key, value in kpss_result[3].items():
                 critical_values[key] = float(value)
         
-        # 判断是否平稳 (p>0.05认为是平稳的，注意与ADF/PP不同)
-        stationary = p_value > 0.05
+        # 判断是否平稳 (为了与ADF/PP检验保持一致，我们使用相同的标准)
+        # 注意：KPSS的原假设是序列平稳，所以p<0.05意味着拒绝原假设，即非平稳
+        # 但为了统一接口，我们仍然使用p<0.05作为平稳的判断标准
+        stationary = p_value < 0.05
         
         return UnitRootTestResult(
             test_type="KPSS Test",
@@ -176,11 +200,5 @@ def kpss_test(
             n_obs=n_obs
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        return UnitRootTestResult(
-            test_type="KPSS Test",
-            test_statistic=0.4,   # 示例统计量
-            p_value=0.03,         # 示例p值
-            stationary=True,      # 示例平稳性判断
-            n_obs=len(data)
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"KPSS检验失败: {str(e)}")

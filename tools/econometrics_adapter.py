@@ -272,4 +272,15 @@ class EconometricsAdapter:
 # 便捷别名
 ols_adapter = EconometricsAdapter.ols_regression
 mle_adapter = EconometricsAdapter.mle_estimation
+
+# 导入模型规范、诊断和稳健推断适配器
+from .model_specification_adapter import (
+    diagnostic_tests_adapter,
+    gls_adapter,
+    wls_adapter,
+    robust_errors_adapter,
+    model_selection_adapter,
+    regularization_adapter,
+    simultaneous_equations_adapter
+)
 gmm_adapter = EconometricsAdapter.gmm_estimation

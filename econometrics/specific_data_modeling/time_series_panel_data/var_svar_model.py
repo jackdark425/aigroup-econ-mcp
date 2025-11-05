@@ -34,7 +34,7 @@ def var_model(
     向量自回归(VAR)模型实现
     
     Args:
-        data: 多元时间序列数据
+        data: 多元时间序列数据 (格式: 每个子列表代表一个变量的时间序列)
         lags: 滞后期数
         variables: 变量名称列表
         
@@ -45,15 +45,45 @@ def var_model(
         from statsmodels.tsa.vector_ar.var_model import VAR
         import pandas as pd
         
+        # 输入验证
+        if not data:
+            raise ValueError("数据不能为空")
+            
+        if not all(isinstance(series, (list, tuple)) for series in data):
+            raise ValueError("数据必须是二维列表格式，每个子列表代表一个变量的时间序列")
+            
+        # 检查所有时间序列长度是否一致
+        series_lengths = [len(series) for series in data]
+        if len(set(series_lengths)) > 1:
+            raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
+            
         # 转换数据格式
-        data_array = np.array(data).T  # 转置以匹配VAR模型要求的格式
+        data_array = np.array(data, dtype=np.float64).T  # 转置以匹配VAR模型要求的格式
+        
+        # 检查数据有效性
+        if np.isnan(data_array).any():
+            raise ValueError("数据中包含缺失值(NaN)")
+            
+        if np.isinf(data_array).any():
+            raise ValueError("数据中包含无穷大值")
         
         # 创建变量名
         if variables is None:
             variables = [f"Variable_{i}" for i in range(len(data))]
         
+        # 检查变量数量是否与数据一致
+        if len(variables) != len(data):
+            raise ValueError(f"变量名称数量({len(variables)})与数据列数({len(data)})不一致")
+        
         # 创建DataFrame
         df = pd.DataFrame(data_array, columns=variables)
+        
+        # 检查滞后期数是否合理
+        if lags <= 0:
+            raise ValueError("滞后期数必须为正整数")
+            
+        if lags >= len(df):
+            raise ValueError("滞后期数必须小于样本数量")
         
         # 创建并拟合VAR模型
         model = VAR(df)
@@ -69,12 +99,50 @@ def var_model(
         for i in range(len(variables)):
             # 对于每个方程
             coeffs.extend(fitted_model.coefs[:, :, i].flatten().tolist())
-            if fitted_model.stderr is not None:
-                std_errors.extend(fitted_model.stderr[:, :, i].flatten().tolist())
-            if fitted_model.tvalues is not None:
-                t_values.extend(fitted_model.tvalues[:, :, i].flatten().tolist())
-            if fitted_model.pvalues is not None:
-                p_values.extend(fitted_model.pvalues[:, :, i].flatten().tolist())
+            # 安全地提取标准误
+            try:
+                if fitted_model.stderr is not None:
+                    # 检查stderr的维度
+                    if hasattr(fitted_model.stderr, 'shape') and len(fitted_model.stderr.shape) == 3:
+                        std_errors.extend(fitted_model.stderr[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.stderr, '__iter__'):
+                        # 如果stderr是可迭代的，尝试安全转换
+                        for se in fitted_model.stderr:
+                            if np.isscalar(se) and np.isfinite(se):
+                                std_errors.append(float(se))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取标准误，保持列表为空
+                pass
+                
+            # 安全地提取t值
+            try:
+                if fitted_model.tvalues is not None:
+                    # 检查tvalues的维度
+                    if hasattr(fitted_model.tvalues, 'shape') and len(fitted_model.tvalues.shape) == 3:
+                        t_values.extend(fitted_model.tvalues[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.tvalues, '__iter__'):
+                        # 如果tvalues是可迭代的，尝试安全转换
+                        for tv in fitted_model.tvalues:
+                            if np.isscalar(tv) and np.isfinite(tv):
+                                t_values.append(float(tv))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取t值，保持列表为空
+                pass
+                
+            # 安全地提取p值
+            try:
+                if fitted_model.pvalues is not None:
+                    # 检查pvalues的维度
+                    if hasattr(fitted_model.pvalues, 'shape') and len(fitted_model.pvalues.shape) == 3:
+                        p_values.extend(fitted_model.pvalues[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.pvalues, '__iter__'):
+                        # 如果pvalues是可迭代的，尝试安全转换
+                        for pv in fitted_model.pvalues:
+                            if np.isscalar(pv) and np.isfinite(pv):
+                                p_values.append(float(pv))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取p值，保持列表为空
+                pass
         
         # 获取信息准则
         aic = float(fitted_model.aic) if hasattr(fitted_model, 'aic') else None
@@ -107,17 +175,8 @@ def var_model(
             n_obs=len(data[0]) if data else 0
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
-        
-        return VARResult(
-            model_type=f"VAR({lags})",
-            lags=lags,
-            variables=variables,
-            coefficients=[0.4, 0.2, 0.1, 0.3],  # 示例系数
-            n_obs=len(data[0]) if data else 0
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"VAR模型拟合失败: {str(e)}")
 
 
 def svar_model(
@@ -145,19 +204,48 @@ def svar_model(
         import pandas as pd
         import numpy as np
         
+        # 输入验证
+        if not data:
+            raise ValueError("数据不能为空")
+            
         # 转换数据格式
-        data_array = np.array(data).T  # 转置以匹配SVAR模型要求的格式
+        data_array = np.array(data, dtype=np.float64).T  # 转置以匹配SVAR模型要求的格式
+        
+        # 检查数据有效性
+        if np.isnan(data_array).any():
+            raise ValueError("数据中包含缺失值(NaN)")
+            
+        if np.isinf(data_array).any():
+            raise ValueError("数据中包含无穷大值")
         
         # 创建变量名
         if variables is None:
             variables = [f"Variable_{i}" for i in range(len(data))]
         
+        # 检查变量数量是否与数据一致
+        if len(variables) != len(data):
+            raise ValueError("变量名称数量与数据列数不一致")
+        
         # 创建DataFrame
         df = pd.DataFrame(data_array, columns=variables)
         
+        # 检查滞后期数是否合理
+        if lags <= 0:
+            raise ValueError("滞后期数必须为正整数")
+            
+        if lags >= len(df):
+            raise ValueError("滞后期数必须小于样本数量")
+        
         # 处理约束矩阵
-        A = np.array(a_matrix) if a_matrix is not None else None
-        B = np.array(b_matrix) if b_matrix is not None else None
+        A = np.array(a_matrix, dtype=np.float64) if a_matrix is not None else None
+        B = np.array(b_matrix, dtype=np.float64) if b_matrix is not None else None
+        
+        # 检查约束矩阵维度
+        if A is not None and A.shape != (len(variables), len(variables)):
+            raise ValueError(f"A矩阵维度不正确，应为({len(variables)}, {len(variables)})")
+            
+        if B is not None and B.shape != (len(variables), len(variables)):
+            raise ValueError(f"B矩阵维度不正确，应为({len(variables)}, {len(variables)})")
         
         # 创建并拟合SVAR模型
         model = SVAR(df, svar_type='AB', A=A, B=B)
@@ -173,12 +261,50 @@ def svar_model(
         for i in range(len(variables)):
             # 对于每个方程
             coeffs.extend(fitted_model.coefs[:, :, i].flatten().tolist())
-            if fitted_model.stderr is not None:
-                std_errors.extend(fitted_model.stderr[:, :, i].flatten().tolist())
-            if fitted_model.tvalues is not None:
-                t_values.extend(fitted_model.tvalues[:, :, i].flatten().tolist())
-            if fitted_model.pvalues is not None:
-                p_values.extend(fitted_model.pvalues[:, :, i].flatten().tolist())
+            # 安全地提取标准误
+            try:
+                if fitted_model.stderr is not None:
+                    # 检查stderr的维度
+                    if hasattr(fitted_model.stderr, 'shape') and len(fitted_model.stderr.shape) == 3:
+                        std_errors.extend(fitted_model.stderr[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.stderr, '__iter__'):
+                        # 如果stderr是可迭代的，尝试安全转换
+                        for se in fitted_model.stderr:
+                            if np.isscalar(se) and np.isfinite(se):
+                                std_errors.append(float(se))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取标准误，保持列表为空
+                pass
+                
+            # 安全地提取t值
+            try:
+                if fitted_model.tvalues is not None:
+                    # 检查tvalues的维度
+                    if hasattr(fitted_model.tvalues, 'shape') and len(fitted_model.tvalues.shape) == 3:
+                        t_values.extend(fitted_model.tvalues[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.tvalues, '__iter__'):
+                        # 如果tvalues是可迭代的，尝试安全转换
+                        for tv in fitted_model.tvalues:
+                            if np.isscalar(tv) and np.isfinite(tv):
+                                t_values.append(float(tv))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取t值，保持列表为空
+                pass
+                
+            # 安全地提取p值
+            try:
+                if fitted_model.pvalues is not None:
+                    # 检查pvalues的维度
+                    if hasattr(fitted_model.pvalues, 'shape') and len(fitted_model.pvalues.shape) == 3:
+                        p_values.extend(fitted_model.pvalues[:, :, i].flatten().tolist())
+                    elif hasattr(fitted_model.pvalues, '__iter__'):
+                        # 如果pvalues是可迭代的，尝试安全转换
+                        for pv in fitted_model.pvalues:
+                            if np.isscalar(pv) and np.isfinite(pv):
+                                p_values.append(float(pv))
+            except (IndexError, TypeError, AttributeError, ValueError):
+                # 如果无法提取p值，保持列表为空
+                pass
         
         # 获取信息准则
         aic = float(fitted_model.aic) if hasattr(fitted_model, 'aic') else None
@@ -211,14 +337,5 @@ def svar_model(
             n_obs=len(data[0]) if data else 0
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
-        
-        return VARResult(
-            model_type=f"SVAR({lags})",
-            lags=lags,
-            variables=variables,
-            coefficients=[0.5, 0.1, 0.2, 0.4],  # 示例系数
-            n_obs=len(data[0]) if data else 0
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"SVAR模型拟合失败: {str(e)}")

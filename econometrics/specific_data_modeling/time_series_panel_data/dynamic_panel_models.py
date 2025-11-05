@@ -36,7 +36,7 @@ def diff_gmm_model(
     
     Args:
         y_data: 因变量数据
-        x_data: 自变量数据
+        x_data: 自变量数据 (格式: 每个子列表代表一个自变量的时间序列)
         entity_ids: 个体标识符
         time_periods: 时间标识符
         lags: 滞后期数
@@ -48,10 +48,38 @@ def diff_gmm_model(
         from linearmodels.panel import DifferenceGMM
         import pandas as pd
         
+        # 输入验证
+        if not y_data:
+            raise ValueError("因变量数据不能为空")
+            
+        if not x_data:
+            raise ValueError("自变量数据不能为空")
+            
+        if not all(isinstance(series, (list, tuple)) for series in x_data):
+            raise ValueError("自变量数据必须是二维列表格式")
+            
+        if not entity_ids:
+            raise ValueError("个体标识符不能为空")
+            
+        if not time_periods:
+            raise ValueError("时间标识符不能为空")
+            
+        # 检查数据长度一致性
+        lengths = [len(y_data), len(entity_ids), len(time_periods)]
+        for i, x_series in enumerate(x_data):
+            lengths.append(len(x_series))
+            
+        if len(set(lengths)) > 1:
+            raise ValueError(f"所有数据序列的长度必须一致，当前长度分别为: {lengths}")
+        
         # 创建面板数据结构
         # 构建MultiIndex
         index = pd.MultiIndex.from_arrays([entity_ids, time_periods], names=['entity', 'time'])
         
+        # 检查索引有效性
+        if index.has_duplicates:
+            raise ValueError("存在重复的个体-时间索引")
+            
         # 构建因变量DataFrame
         y_df = pd.DataFrame({'y': y_data}, index=index)
         
@@ -60,6 +88,10 @@ def diff_gmm_model(
         for i, x in enumerate(x_data):
             x_dict[f'x{i}'] = x
         x_df = pd.DataFrame(x_dict, index=index)
+        
+        # 检查面板数据结构
+        if y_df.empty or x_df.empty:
+            raise ValueError("构建的面板数据为空")
         
         # 创建并拟合差分GMM模型
         model = DifferenceGMM(y_df, x_df, lags=lags)
@@ -87,11 +119,17 @@ def diff_gmm_model(
             conf_int_upper = None
         
         # 提取工具变量数量
-        instruments = int(fitted_model.summary.tables[0].data[6][1]) if len(fitted_model.summary.tables) > 0 else None
+        instruments = None
+        try:
+            if hasattr(fitted_model, 'summary') and len(fitted_model.summary.tables) > 0:
+                instruments = int(fitted_model.summary.tables[0].data[6][1])
+        except (IndexError, ValueError, TypeError):
+            # 如果无法提取工具变量数量，则保持为None
+            instruments = None
         
         # 提取J统计量（过度识别约束检验）
-        j_statistic = float(fitted_model.j_stat.stat) if hasattr(fitted_model, 'j_stat') else None
-        j_p_value = float(fitted_model.j_stat.pval) if hasattr(fitted_model, 'j_stat') else None
+        j_statistic = float(fitted_model.j_stat.stat) if hasattr(fitted_model, 'j_stat') and hasattr(fitted_model.j_stat, 'stat') else None
+        j_p_value = float(fitted_model.j_stat.pval) if hasattr(fitted_model, 'j_stat') and hasattr(fitted_model.j_stat, 'pval') else None
         
         return DynamicPanelResult(
             model_type="Difference GMM (Arellano-Bond)",
@@ -109,14 +147,8 @@ def diff_gmm_model(
             n_time_periods=len(set(time_periods))
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        return DynamicPanelResult(
-            model_type="Difference GMM (Arellano-Bond)",
-            coefficients=[0.7, 0.3],  # 示例系数
-            n_obs=len(y_data),
-            n_individuals=len(set(entity_ids)),
-            n_time_periods=len(set(time_periods))
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"差分GMM模型拟合失败: {str(e)}")
 
 
 def sys_gmm_model(
@@ -182,11 +214,17 @@ def sys_gmm_model(
             conf_int_upper = None
         
         # 提取工具变量数量
-        instruments = int(fitted_model.summary.tables[0].data[6][1]) if len(fitted_model.summary.tables) > 0 else None
+        instruments = None
+        try:
+            if hasattr(fitted_model, 'summary') and len(fitted_model.summary.tables) > 0:
+                instruments = int(fitted_model.summary.tables[0].data[6][1])
+        except (IndexError, ValueError, TypeError):
+            # 如果无法提取工具变量数量，则保持为None
+            instruments = None
         
         # 提取J统计量（过度识别约束检验）
-        j_statistic = float(fitted_model.j_stat.stat) if hasattr(fitted_model, 'j_stat') else None
-        j_p_value = float(fitted_model.j_stat.pval) if hasattr(fitted_model, 'j_stat') else None
+        j_statistic = float(fitted_model.j_stat.stat) if hasattr(fitted_model, 'j_stat') and hasattr(fitted_model.j_stat, 'stat') else None
+        j_p_value = float(fitted_model.j_stat.pval) if hasattr(fitted_model, 'j_stat') and hasattr(fitted_model.j_stat, 'pval') else None
         
         return DynamicPanelResult(
             model_type="System GMM (Blundell-Bond)",
@@ -204,11 +242,5 @@ def sys_gmm_model(
             n_time_periods=len(set(time_periods))
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        return DynamicPanelResult(
-            model_type="System GMM (Blundell-Bond)",
-            coefficients=[0.65, 0.35],  # 示例系数
-            n_obs=len(y_data),
-            n_individuals=len(set(entity_ids)),
-            n_time_periods=len(set(time_periods))
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"系统GMM模型拟合失败: {str(e)}")

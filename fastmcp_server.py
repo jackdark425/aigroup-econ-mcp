@@ -1,5 +1,5 @@
 """
-AIGroup 计量经济学 MCP 服务器 v2.1 - 组件化架构
+AIGroup 计量经济学 MCP 服务器 v2.2 - 组件化架构
 自动发现和注册工具组件
 """
 
@@ -22,6 +22,7 @@ if sys.platform == "win32":
 # 导入所有工具组
 from tools.mcp_tool_groups.basic_parametric_tools import BasicParametricTools
 from tools.mcp_tool_groups.time_series_tools import TimeSeriesTools
+from tools.mcp_tool_groups.model_specification_tools import ModelSpecificationTools
 
 # 创建 FastMCP 服务器实例
 mcp = FastMCP("aigroup-econ-mcp")
@@ -92,7 +93,7 @@ async def time_series_exponential_smoothing(
     file_path: Optional[str] = None,
     trend: bool = True,
     seasonal: bool = False,
-    seasonal_periods: Optional[int] = None,
+   seasonal_periods: Optional[int] = None,
     forecast_steps: int = 1,
     output_format: str = "json",
     save_path: Optional[str] = None,
@@ -240,6 +241,118 @@ async def time_varying_parameter_models(
     """Time-Varying Parameter Models (TAR, STAR, Markov Switching)"""
     return await TimeSeriesTools.time_varying_parameter_tool(y_data, x_data, file_path, model_type, threshold_variable, n_regimes, star_type, output_format, save_path, ctx)
 
+# 注册模型规范、诊断和稳健推断工具
+@mcp.tool()
+async def model_diagnostic_tests(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    feature_names: Optional[List[str]] = None,
+    constant: bool = True,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Model Diagnostic Tests (Heteroskedasticity, Autocorrelation, Normality, VIF)"""
+    return await ModelSpecificationTools.diagnostic_tests_tool(y_data, x_data, file_path, feature_names, constant, output_format, save_path, ctx)
+
+@mcp.tool()
+async def generalized_least_squares(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    sigma: Optional[List[List[float]]] = None,
+    feature_names: Optional[List[str]] = None,
+    constant: bool = True,
+    confidence_level: float = 0.95,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Generalized Least Squares (GLS) Regression"""
+    return await ModelSpecificationTools.gls_tool(y_data, x_data, file_path, sigma, feature_names, constant, confidence_level, output_format, save_path, ctx)
+
+@mcp.tool()
+async def weighted_least_squares(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    weights: Optional[List[float]] = None,
+    feature_names: Optional[List[str]] = None,
+    constant: bool = True,
+    confidence_level: float = 0.95,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Weighted Least Squares (WLS) Regression"""
+    return await ModelSpecificationTools.wls_tool(y_data, x_data, file_path, weights, feature_names, constant, confidence_level, output_format, save_path, ctx)
+
+@mcp.tool()
+async def robust_errors_regression(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    feature_names: Optional[List[str]] = None,
+    constant: bool = True,
+    confidence_level: float = 0.95,
+    cov_type: str = "HC1",
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Robust Standard Errors Regression (Heteroskedasticity-Robust)"""
+    return await ModelSpecificationTools.robust_errors_tool(y_data, x_data, file_path, feature_names, constant, confidence_level, cov_type, output_format, save_path, ctx)
+
+@mcp.tool()
+async def model_selection_criteria(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    feature_names: Optional[List[str]] = None,
+    constant: bool = True,
+    cv_folds: Optional[int] = None,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Model Selection Criteria (AIC, BIC, HQIC, Cross-Validation)"""
+    return await ModelSpecificationTools.model_selection_tool(y_data, x_data, file_path, feature_names, constant, cv_folds, output_format, save_path, ctx)
+
+@mcp.tool()
+async def regularized_regression(
+    y_data: Optional[List[float]] = None,
+    x_data: Optional[Union[List[float], List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    method: str = "ridge",
+    alpha: float = 1.0,
+    l1_ratio: float = 0.5,
+    feature_names: Optional[List[str]] = None,
+    fit_intercept: bool = True,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Regularized Regression (Ridge, LASSO, Elastic Net)"""
+    return await ModelSpecificationTools.regularization_tool(y_data, x_data, file_path, method, alpha, l1_ratio, feature_names, fit_intercept, output_format, save_path, ctx)
+
+@mcp.tool()
+async def simultaneous_equations_model(
+    y_data: Optional[List[List[float]]] = None,
+    x_data: Optional[List[List[List[float]]]] = None,
+    file_path: Optional[str] = None,
+    instruments: Optional[List[List[float]]] = None,
+    equation_names: Optional[List[str]] = None,
+    endogenous_vars: Optional[List[str]] = None,
+    exogenous_vars: Optional[List[str]] = None,
+    constant: bool = True,
+    output_format: str = "json",
+    save_path: Optional[str] = None,
+    ctx: Context[ServerSession, None] = None
+) -> str:
+    """Simultaneous Equations Model (2SLS)"""
+    return await ModelSpecificationTools.simultaneous_equations_tool(y_data, x_data, file_path, instruments, equation_names, endogenous_vars, exogenous_vars, constant, output_format, save_path, ctx)
+
 
 @mcp.resource("guide://econometrics")
 def get_econometrics_guide() -> str:
@@ -254,14 +367,16 @@ def get_econometrics_guide() -> str:
 def main():
     """Start FastMCP server"""
     print("=" * 60)
-    print("AIGroup Econometrics MCP Server v2.1.0")
+    print("AIGroup Econometrics MCP Server v2.2.0")
     print("=" * 60)
     print("\n架构: 组件化")
     print("\n已注册工具组:")
     print(f"  - {BasicParametricTools.name} ({len(BasicParametricTools.get_tools())} tools)")
     print(f"  - {TimeSeriesTools.name} ({len(TimeSeriesTools.get_tools())} tools)")
+    print(f"  - {ModelSpecificationTools.name} ({len(ModelSpecificationTools.get_tools())} tools)")
     
-    print(f"\n总工具数: 14")
+    total_tools = len(BasicParametricTools.get_tools()) + len(TimeSeriesTools.get_tools()) + len(ModelSpecificationTools.get_tools())
+    print(f"\n总工具数: {total_tools}")
     print("\n支持格式:")
     print("  输入: txt/json/csv/excel (.xlsx, .xls)")
     print("  输出: json/markdown/txt")

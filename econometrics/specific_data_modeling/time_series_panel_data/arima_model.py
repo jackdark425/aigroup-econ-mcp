@@ -75,9 +75,10 @@ def arima_model(
         bic = float(fitted_model.bic) if hasattr(fitted_model, 'bic') else None
         hqic = float(fitted_model.hqic) if hasattr(fitted_model, 'hqic') else None
         
-        # 计算R方
-        r_squared = float(fitted_model.rsquared) if hasattr(fitted_model, 'rsquared') else None
-        adj_r_squared = float(fitted_model.rsquared_adj) if hasattr(fitted_model, 'rsquared_adj') else None
+        # 对于ARIMA模型，通常不计算R方，因为它是基于预测误差而不是解释方差
+        # 但我们仍可以尝试获取，如果没有就设为None
+        r_squared = float(getattr(fitted_model, 'rsquared', None)) if hasattr(fitted_model, 'rsquared') else None
+        adj_r_squared = float(getattr(fitted_model, 'rsquared_adj', None)) if hasattr(fitted_model, 'rsquared_adj') else None
         
         p, d, q = order
         
@@ -99,11 +100,5 @@ def arima_model(
             forecast=forecast
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        p, d, q = order
-        return ARIMAResult(
-            model_type=f"ARIMA({p},{d},{q})",
-            order=order,
-            coefficients=[0.5, 0.3],  # 示例系数
-            n_obs=len(data)
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"ARIMA模型拟合失败: {str(e)}")

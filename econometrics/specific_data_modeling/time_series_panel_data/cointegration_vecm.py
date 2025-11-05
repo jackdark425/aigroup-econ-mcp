@@ -43,7 +43,7 @@ def engle_granger_cointegration_test(
     Engle-Granger协整检验实现
     
     Args:
-        data: 多元时间序列数据
+        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
         variables: 变量名称列表
         
     Returns:
@@ -52,29 +52,70 @@ def engle_granger_cointegration_test(
     try:
         from statsmodels.tsa.stattools import coint
         
+        # 检查数据是否为空
+        if not data or len(data) == 0 or len(data[0]) == 0:
+            raise ValueError("输入数据不能为空")
+        
         # 转换数据格式
         data_array = np.array(data)
         
-        # 执行Engle-Granger协整检验 (默认使用2个变量)
+        # 确保数据是正确的二维格式
+        if len(data_array.shape) != 2:
+            raise ValueError("数据必须是二维数组")
+        
+        # 对于多变量情况，执行多个两两协整检验
         if data_array.shape[0] >= 2:
-            # 使用第一个变量作为因变量，其余作为自变量
+            # 使用第一个变量作为因变量，其余作为自变量进行协整检验
             y = data_array[0]
-            x = data_array[1]
+            x_variables = data_array[1:]
             
-            # 执行协整检验
-            test_statistic, p_value, critical_values = coint(y, x)
+            # 检查所有时间序列长度是否一致
+            series_lengths = [len(series) for series in data_array]
+            if len(set(series_lengths)) > 1:
+                raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
+            
+            # 如果只有一个自变量，直接执行协整检验
+            if x_variables.shape[0] == 1:
+                x = x_variables[0]
+                test_statistic, p_value, critical_values = coint(y, x)
+            else:
+                # 多个自变量情况下，先进行OLS回归得到残差，再对残差进行单位根检验
+                # 构造回归数据
+                X = x_variables.T  # 转置以匹配回归要求的格式
+                X = np.column_stack([np.ones(len(X)), X])  # 添加常数项
+                
+                # OLS回归
+                try:
+                    beta = np.linalg.lstsq(X, y, rcond=None)[0]
+                    residuals = y - X @ beta
+                    
+                    # 对残差进行ADF检验
+                    from statsmodels.tsa.stattools import adfuller
+                    adf_result = adfuller(residuals)
+                    test_statistic = float(adf_result[0])
+                    p_value = float(adf_result[1])
+                    critical_values = adf_result[4] if len(adf_result) > 4 else None
+                except Exception as e:
+                    raise ValueError(f"多变量协整检验计算失败: {str(e)}")
             
             # 转换临界值为标准格式
             crit_vals = {}
             if critical_values is not None:
-                for key, value in critical_values.items():
-                    crit_vals[key] = float(value)
+                if isinstance(critical_values, dict):
+                    for key, value in critical_values.items():
+                        crit_vals[key] = float(value)
+                else:
+                    # 如果是数组形式，使用默认标签
+                    crit_names = ['1%', '5%', '10%']
+                    for i, name in enumerate(crit_names):
+                        if i < len(critical_values):
+                            crit_vals[name] = float(critical_values[i])
             
             return CointegrationResult(
                 model_type="Engle-Granger Cointegration Test",
                 test_statistic=float(test_statistic),
                 p_value=float(p_value),
-                critical_values=crit_vals,
+                critical_values=crit_vals if crit_vals else None,
                 n_obs=len(y)
             )
         else:
@@ -86,19 +127,11 @@ def engle_granger_cointegration_test(
                 model_type="Engle-Granger Cointegration Test",
                 test_statistic=-3.2,  # 示例统计量
                 p_value=0.01,         # 示例p值
-                n_obs=len(data[0]) if data else 0
+                n_obs=len(data[0]) if data and len(data) > 0 and len(data[0]) > 0 else 0
             )
     except Exception as e:
-        # 出现错误时返回默认结果
-        if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
-        
-        return CointegrationResult(
-            model_type="Engle-Granger Cointegration Test",
-            test_statistic=-3.2,  # 示例统计量
-            p_value=0.01,         # 示例p值
-            n_obs=len(data[0]) if data else 0
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"Engle-Granger协整检验失败: {str(e)}")
 
 
 def johansen_cointegration_test(
@@ -109,7 +142,7 @@ def johansen_cointegration_test(
     Johansen协整检验实现
     
     Args:
-        data: 多元时间序列数据
+        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
         variables: 变量名称列表
         
     Returns:
@@ -119,56 +152,62 @@ def johansen_cointegration_test(
         from statsmodels.tsa.vector_ar.vecm import coint_johansen
         import pandas as pd
         
-        # 转换数据格式
-        data_array = np.array(data).T  # 转置以匹配VECM要求的格式
+        # 检查数据是否为空
+        if not data or len(data) == 0 or len(data[0]) == 0:
+            raise ValueError("输入数据不能为空")
+        
+        # 转换数据格式，确保是二维数组
+        data_array = np.array(data)
+        
+        # 确保数据是正确的二维格式 (n_variables, n_observations)
+        if len(data_array.shape) != 2:
+            raise ValueError("数据必须是二维数组")
+        
+        # 转置以匹配VECM要求的格式 (n_observations, n_variables)
+        data_for_df = data_array.T
         
         # 创建变量名
         if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
+            variables = [f"Variable_{i}" for i in range(data_array.shape[0])]
         
         # 创建DataFrame
-        df = pd.DataFrame(data_array, columns=variables)
+        df = pd.DataFrame(data_for_df, columns=variables)
         
         # 执行Johansen协整检验
         johansen_result = coint_johansen(df, det_order=0, k_ar_diff=1)
         
         # 提取迹统计量和最大特征值统计量
-        trace_stat = johansen_result.lr1[0]  # 迹统计量
+        trace_stat = johansen_result.lr1[0] if len(johansen_result.lr1) > 0 else 0  # 迹统计量
         trace_p_value = None  # statsmodels不直接提供p值，需要查表
         
         # 提取协整向量
-        coint_vectors = johansen_result.evec.tolist()
+        coint_vectors = johansen_result.evec.tolist() if johansen_result.evec is not None else None
         
-        # 提取协整秩
-        rank = int(np.sum(johansen_result.cvm[:, 0] > trace_stat))
-        
-        # 提取临界值
+        # 提取协整秩 (使用迹检验)
+        # 根据临界值判断协整关系的数量
         critical_values_trace = {}
-        if johansen_result.cvt is not None:
+        rank = 0
+        if johansen_result.cvt is not None and johansen_result.lr1 is not None:
+            critical_values = johansen_result.cvt[:, 1] if johansen_result.cvt.shape[1] > 1 else johansen_result.cvt[:, 0]  # 5%显著性水平
+            rank = int(sum(johansen_result.lr1 > critical_values)) if len(johansen_result.lr1) > 0 and len(critical_values) > 0 else 0
+            
+            # 提取临界值
             for i, name in enumerate(['10%', '5%', '1%']):
-                critical_values_trace[name] = float(johansen_result.cvt[0, i])
+                if johansen_result.cvt.shape[1] > i:
+                    critical_values_trace[name] = float(johansen_result.cvt[0, i])
         
         return CointegrationResult(
             model_type="Johansen Cointegration Test",
             test_statistic=float(trace_stat),
             p_value=trace_p_value,
-            critical_values=critical_values_trace,
+            critical_values=critical_values_trace if critical_values_trace else None,
             cointegrating_vectors=coint_vectors,
             rank=rank,
-            n_obs=len(data[0]) if data else 0
+            n_obs=data_array.shape[1]  # 观测数量是时间序列的长度
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
-        
-        return CointegrationResult(
-            model_type="Johansen Cointegration Test",
-            test_statistic=-4.5,  # 示例迹统计量
-            p_value=0.005,        # 示例p值
-            rank=1,               # 示例协整秩
-            n_obs=len(data[0]) if data else 0
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"Johansen协整检验失败: {str(e)}")
 
 
 def vecm_model(
@@ -180,7 +219,7 @@ def vecm_model(
     向量误差修正模型(VECM)实现
     
     Args:
-        data: 多元时间序列数据
+        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
         coint_rank: 协整秩
         variables: 变量名称列表
         
@@ -191,15 +230,26 @@ def vecm_model(
         from statsmodels.tsa.vector_ar.vecm import VECM
         import pandas as pd
         
-        # 转换数据格式
-        data_array = np.array(data).T  # 转置以匹配VECM要求的格式
+        # 检查数据是否为空
+        if not data or len(data) == 0 or len(data[0]) == 0:
+            raise ValueError("输入数据不能为空")
+        
+        # 转换数据格式，确保是二维数组
+        data_array = np.array(data)
+        
+        # 确保数据是正确的二维格式 (n_variables, n_observations)
+        if len(data_array.shape) != 2:
+            raise ValueError("数据必须是二维数组")
+        
+        # 转置以匹配VECM要求的格式 (n_observations, n_variables)
+        data_for_df = data_array.T
         
         # 创建变量名
         if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
+            variables = [f"Variable_{i}" for i in range(data_array.shape[0])]
         
         # 创建DataFrame
-        df = pd.DataFrame(data_array, columns=variables)
+        df = pd.DataFrame(data_for_df, columns=variables)
         
         # 创建并拟合VECM模型
         model = VECM(df, coint_rank=coint_rank, deterministic="ci")
@@ -207,7 +257,7 @@ def vecm_model(
         
         # 提取参数估计结果
         # 展平系数矩阵
-        coeffs = fitted_model.params.flatten().tolist()
+        coeffs = fitted_model.params.flatten().tolist() if fitted_model.params is not None else []
         
         # 提取标准误
         std_errors = fitted_model.stderr.flatten().tolist() if fitted_model.stderr is not None else None
@@ -219,9 +269,9 @@ def vecm_model(
         p_values = fitted_model.pvalues.flatten().tolist() if fitted_model.pvalues is not None else None
         
         # 提取alpha, beta, gamma矩阵
-        alpha = fitted_model.alpha.flatten().tolist() if hasattr(fitted_model, 'alpha') else None
-        beta = fitted_model.beta.flatten().tolist() if hasattr(fitted_model, 'beta') else None
-        gamma = fitted_model.gamma.flatten().tolist() if hasattr(fitted_model, 'gamma') else None
+        alpha = fitted_model.alpha.flatten().tolist() if hasattr(fitted_model, 'alpha') and fitted_model.alpha is not None else None
+        beta = fitted_model.beta.flatten().tolist() if hasattr(fitted_model, 'beta') and fitted_model.beta is not None else None
+        gamma = fitted_model.gamma.flatten().tolist() if hasattr(fitted_model, 'gamma') and fitted_model.gamma is not None else None
         
         # 获取对数似然值和信息准则
         log_likelihood = float(fitted_model.llf) if hasattr(fitted_model, 'llf') else None
@@ -241,16 +291,8 @@ def vecm_model(
             log_likelihood=log_likelihood,
             aic=aic,
             bic=bic,
-            n_obs=len(data[0]) if data else 0
+            n_obs=data_array.shape[1]  # 观测数量是时间序列的长度
         )
     except Exception as e:
-        # 出现错误时返回默认结果
-        if variables is None:
-            variables = [f"Variable_{i}" for i in range(len(data))]
-        
-        return VECMResult(
-            model_type=f"VECM({coint_rank})",
-            coint_rank=coint_rank,
-            coefficients=[0.7, -0.5, 0.3],  # 示例系数
-            n_obs=len(data[0]) if data else 0
-        )
+        # 出现错误时抛出异常
+        raise ValueError(f"VECM模型拟合失败: {str(e)}")

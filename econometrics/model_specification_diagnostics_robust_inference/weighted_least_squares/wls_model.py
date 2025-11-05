@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 import numpy as np
 import pandas as pd
 from scipy import stats
+import statsmodels.api as sm
 
 from tools.decorators import with_file_support_decorator as econometric_tool, validate_input
 
@@ -66,15 +67,9 @@ def wls_regression(
     if np.any(w <= 0):
         raise ValueError("所有权重必须为正数")
     
-    # 处理极小权重，避免数值问题
-    w_min = np.min(w)
-    if w_min < 1e-10:
-        # 将极小权重设置为最小权重的某个比例
-        w = np.maximum(w, w_min * 1e-3)
-    
     # 添加常数项
     if constant:
-        X = np.column_stack([np.ones(len(X)), X])
+        X = sm.add_constant(X)
         if feature_names:
             feature_names = ["const"] + feature_names
         else:
@@ -83,94 +78,50 @@ def wls_regression(
         if not feature_names:
             feature_names = [f"x{i}" for i in range(X.shape[1])]
     
+    # 检查数据维度
     n, k = X.shape
-    
-    # 检查是否有足够的自由度
     if n <= k:
         raise ValueError(f"观测数量({n})必须大于变量数量({k})")
     
-    # 构造权重矩阵
-    W = np.diag(w)
-    
-    # 执行WLS回归: β = (X'WX)^(-1)X'Wy
+    # 使用statsmodels执行WLS回归
     try:
-        XtWX = X.T @ W @ X
-        XtWX_inv = np.linalg.inv(XtWX)
-    except np.linalg.LinAlgError:
-        # 如果矩阵奇异，添加一个小的正数进行正则化
-        XtWX = X.T @ W @ X
-        # 使用迹来确定正则化强度
-        reg_strength = 1e-10 * np.trace(XtWX) / k if k > 0 and np.trace(XtWX) > 0 else 1e-10
-        XtWX_reg = XtWX + reg_strength * np.eye(k)
-        XtWX_inv = np.linalg.inv(XtWX_reg)
+        model = sm.WLS(y, X, weights=w)
+        results = model.fit()
+    except Exception as e:
+        raise ValueError(f"无法拟合WLS模型: {str(e)}")
     
-    # 计算系数
-    beta = XtWX_inv @ X.T @ W @ y
+    # 提取结果
+    coefficients = results.params.tolist()
+    std_errors = results.bse.tolist()
+    t_values = results.tvalues.tolist()
+    p_values = results.pvalues.tolist()
     
-    # 计算预测值和残差
-    y_pred = X @ beta
-    residuals = y - y_pred
-    
-    # 计算各种统计量
-    df_resid = max(n - k, 1)  # 至少为1，避免除零错误
-    
-    # 加权残差平方和
-    weighted_ssr = np.sum(w * (residuals ** 2))
-    
-    # 加权总平方和
-    weighted_y = w * y
-    weighted_mean_y = np.sum(weighted_y) / np.sum(w) if np.sum(w) > 1e-10 else 0
-    weighted_sst = np.sum(w * (y - weighted_mean_y) ** 2)
-    
-    # 加权回归平方和
-    weighted_ssr_reg = max(weighted_sst - weighted_ssr, 0)  # 避免负数
-    
-    # 均方误差
-    mse = weighted_ssr / df_resid if df_resid > 0 else weighted_ssr
-    
-    # R方和调整R方（加权版本）
-    r_squared = 1 - (weighted_ssr / weighted_sst) if weighted_sst > 1e-10 else 0
-    adj_r_squared = 1 - ((weighted_ssr / df_resid) / (weighted_sst / max(n - 1, 1))) if weighted_sst > 1e-10 and n > k else 0
-    
-    # 系数标准误
-    var_beta = mse * XtWX_inv
-    # 避免负方差
-    diag_var_beta = np.diag(var_beta)
-    diag_var_beta = np.maximum(diag_var_beta, 0)
-    std_errors = np.sqrt(diag_var_beta)
-    # 避免标准误为零
-    std_errors = np.maximum(std_errors, 1e-12)
-    
-    # t统计量和p值
-    t_values = np.divide(beta, std_errors, out=np.zeros_like(beta), where=std_errors!=0)
-    p_values = 2 * (1 - stats.t.cdf(np.abs(t_values), df_resid))
-    
-    # 置信区间
+    # 计算置信区间
     alpha = 1 - confidence_level
-    t_critical = stats.t.ppf(1 - alpha/2, df_resid)
-    conf_int_lower = beta - t_critical * std_errors
-    conf_int_upper = beta + t_critical * std_errors
+    conf_int = results.conf_int(alpha=alpha)
+    conf_int_lower = conf_int[:, 0].tolist()
+    conf_int_upper = conf_int[:, 1].tolist()
+    
+    # 其他统计量
+    r_squared = float(results.rsquared)
+    adj_r_squared = float(results.rsquared_adj)
     
     # F统计量
-    if k > 1:
-        f_statistic = (weighted_ssr_reg / max(k - 1, 1)) / max(mse, 1e-10)
-        f_p_value = 1 - stats.f.cdf(f_statistic, max(k - 1, 1), df_resid)
-    else:
-        f_statistic = 0
-        f_p_value = 1
+    f_statistic = float(results.fvalue) if not np.isnan(results.fvalue) else 0.0
+    f_p_value = float(results.f_pvalue) if not np.isnan(results.f_pvalue) else 1.0
     
     return WLSResult(
-        coefficients=beta.tolist(),
-        std_errors=std_errors.tolist(),
-        t_values=t_values.tolist(),
-        p_values=p_values.tolist(),
-        conf_int_lower=conf_int_lower.tolist(),
-        conf_int_upper=conf_int_upper.tolist(),
-        r_squared=float(r_squared),
-        adj_r_squared=float(adj_r_squared),
-        f_statistic=float(f_statistic),
-        f_p_value=float(f_p_value),
-        n_obs=n,
+        coefficients=coefficients,
+        std_errors=std_errors,
+        t_values=t_values,
+        p_values=p_values,
+        conf_int_lower=conf_int_lower,
+        conf_int_upper=conf_int_upper,
+        r_squared=r_squared,
+        adj_r_squared=adj_r_squared,
+        f_statistic=f_statistic,
+        f_p_value=f_p_value,
+        n_obs=int(results.nobs),
         feature_names=feature_names,
         weights=weights
     )

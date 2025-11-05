@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 import numpy as np
 import pandas as pd
 from scipy import stats
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
+from sklearn.preprocessing import StandardScaler
 
 from tools.decorators import with_file_support_decorator as econometric_tool, validate_input
 
@@ -59,6 +61,10 @@ def regularized_regression(
     if X.size == 0 or y.size == 0:
         raise ValueError("输入数据不能为空")
     
+    # 确保X是二维数组
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+    
     n, p = X.shape
     
     if len(y) != n:
@@ -96,52 +102,45 @@ def regularized_regression(
             method=method
         )
     
-    # 标准化特征（均值为0，标准差为1）
-    X_mean = np.mean(X, axis=0)
-    X_std = np.std(X, axis=0)
-    # 更安全地处理标准差为零的情况
-    X_std = np.where(X_std < 1e-10, 1.0, X_std)  # 避免除以接近零的数
-    X_scaled = (X - X_mean) / X_std
+    # 使用sklearn的StandardScaler进行标准化
+    scaler_X = StandardScaler()
+    scaler_y = StandardScaler()
     
-    # 标准化目标变量（如果需要）
-    y_mean = np.mean(y)
-    y_scaled = y - y_mean if fit_intercept else y
+    # 标准化特征和目标变量
+    X_scaled = scaler_X.fit_transform(X)
+    y_scaled = scaler_y.fit_transform(y.reshape(-1, 1)).ravel()
     
-    # 根据方法选择正则化
+    # 根据方法选择模型
     if method == "ridge":
-        # 岭回归: β = (X'X + αI)^(-1)X'y
-        try:
-            I = np.eye(p)
-            XtX = X_scaled.T @ X_scaled
-            # 添加正则化项
-            XtX_reg = XtX + alpha * I * n  # 乘以n以匹配sklearn的实现
-            beta_scaled = np.linalg.inv(XtX_reg) @ X_scaled.T @ y_scaled
-        except np.linalg.LinAlgError:
-            # 如果矩阵奇异，使用伪逆
-            XtX = X_scaled.T @ X_scaled
-            I = np.eye(p)
-            XtX_reg = XtX + alpha * I * n
-            beta_scaled = np.linalg.pinv(XtX_reg) @ X_scaled.T @ y_scaled
+        model = Ridge(alpha=alpha, fit_intercept=True, random_state=42)
     elif method == "lasso":
-        # LASSO回归（简化实现，使用坐标下降法）
-        beta_scaled = _lasso_coordinate_descent(X_scaled, y_scaled, alpha, max_iter=2000, tol=1e-6)
+        model = Lasso(alpha=alpha, fit_intercept=True, max_iter=2000, tol=1e-6, random_state=42)
     elif method == "elastic_net":
-        # 弹性网络（简化实现）
-        beta_scaled = _elastic_net_coordinate_descent(X_scaled, y_scaled, alpha, l1_ratio, max_iter=2000, tol=1e-6)
+        model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=True, max_iter=2000, tol=1e-6, random_state=42)
     else:
         raise ValueError("方法必须是 'ridge', 'lasso' 或 'elastic_net'")
     
-    # 变换回原始尺度
-    if fit_intercept and len(beta_scaled) > 0:
-        intercept = y_mean - np.sum(beta_scaled * X_mean / X_std)
-        # 避免除以零
-        beta = np.divide(beta_scaled, X_std, out=np.zeros_like(beta_scaled), where=X_std!=0)
-    elif len(beta_scaled) > 0:
-        intercept = 0.0
-        beta = np.divide(beta_scaled, X_std, out=np.zeros_like(beta_scaled), where=X_std!=0)
+    # 训练模型
+    try:
+        model.fit(X_scaled, y_scaled)
+    except Exception as e:
+        raise ValueError(f"模型拟合失败: {str(e)}")
+    
+    # 获取系数并转换回原始尺度
+    coef_scaled = model.coef_
+    intercept_scaled = model.intercept_
+    
+    # 转换回原始尺度
+    # 对于标准化的数据，系数变换为: beta = coef_scaled * std_y / std_X
+    # 截距变换为: intercept = mean_y - beta * mean_X
+    if fit_intercept and len(scaler_X.scale_) == len(coef_scaled):
+        # 确保不会除以零
+        scale_X = np.where(scaler_X.scale_ == 0, 1.0, scaler_X.scale_)
+        beta = coef_scaled * (scaler_y.scale_ / scale_X)
+        intercept = scaler_y.mean_ - np.sum(beta * scaler_X.mean_)
     else:
-        intercept = 0.0 if not fit_intercept else float(y_mean)
-        beta = np.array([])
+        beta = coef_scaled * scaler_y.scale_ if len(coef_scaled) > 0 else np.array([])
+        intercept = scaler_y.mean_ if fit_intercept else 0.0
     
     # 计算预测值和R方
     if len(beta) > 0:
@@ -176,112 +175,3 @@ def regularized_regression(
     )
 
 
-def _lasso_coordinate_descent(X, y, alpha, max_iter=2000, tol=1e-6):
-    """
-    LASSO回归的坐标下降实现
-    
-    Args:
-        X: 特征矩阵
-        y: 目标变量
-        alpha: 正则化参数
-        max_iter: 最大迭代次数
-        tol: 收敛容忍度
-        
-    Returns:
-        numpy.ndarray: 回归系数
-    """
-    n, p = X.shape
-    beta = np.zeros(p)
-    
-    # 预计算 X_j^T * X_j 以提高效率
-    XtX_diag = np.sum(X**2, axis=0)
-    
-    # 避免除以零
-    XtX_diag = np.maximum(XtX_diag, 1e-10)
-    
-    for iteration in range(max_iter):
-        beta_old = beta.copy()
-        max_change = 0.0
-        
-        for j in range(p):
-            # 计算第j个特征的残差（不包括第j个特征的贡献）
-            residual = y - X @ beta + beta[j] * X[:, j]
-            
-            # 计算软阈值
-            rho = X[:, j] @ residual
-            
-            # 软阈值函数
-            old_beta_j = beta[j]
-            if rho > alpha * n:
-                beta[j] = (rho - alpha * n) / XtX_diag[j]
-            elif rho < -alpha * n:
-                beta[j] = (rho + alpha * n) / XtX_diag[j]
-            else:
-                beta[j] = 0
-            
-            # 更新最大变化量
-            max_change = max(max_change, abs(beta[j] - old_beta_j))
-        
-        # 检查收敛
-        if max_change < tol:
-            break
-    
-    return beta
-
-
-def _elastic_net_coordinate_descent(X, y, alpha, l1_ratio, max_iter=2000, tol=1e-6):
-    """
-    弹性网络的坐标下降实现
-    
-    Args:
-        X: 特征矩阵
-        y: 目标变量
-        alpha: 正则化参数
-        l1_ratio: L1正则化比例
-        max_iter: 最大迭代次数
-        tol: 收敛容忍度
-        
-    Returns:
-        numpy.ndarray: 回归系数
-    """
-    n, p = X.shape
-    beta = np.zeros(p)
-    alpha_l1 = alpha * l1_ratio * n
-    alpha_l2 = alpha * (1 - l1_ratio) * n
-    
-    # 预计算 X_j^T * X_j 以提高效率
-    XtX_diag = np.sum(X**2, axis=0)
-    # 添加L2正则化项
-    XtX_diag_reg = XtX_diag + alpha_l2
-    
-    # 避免除以零
-    XtX_diag_reg = np.maximum(XtX_diag_reg, 1e-10)
-    
-    for iteration in range(max_iter):
-        beta_old = beta.copy()
-        max_change = 0.0
-        
-        for j in range(p):
-            # 计算第j个特征的残差（不包括第j个特征的贡献）
-            residual = y - X @ beta + beta[j] * X[:, j]
-            
-            # 计算梯度
-            rho = X[:, j] @ residual
-            
-            # 弹性网络软阈值函数
-            old_beta_j = beta[j]
-            if rho > alpha_l1:
-                beta[j] = (rho - alpha_l1) / XtX_diag_reg[j]
-            elif rho < -alpha_l1:
-                beta[j] = (rho + alpha_l1) / XtX_diag_reg[j]
-            else:
-                beta[j] = 0
-            
-            # 更新最大变化量
-            max_change = max(max_change, abs(beta[j] - old_beta_j))
-        
-        # 检查收敛
-        if max_change < tol:
-            break
-    
-    return beta

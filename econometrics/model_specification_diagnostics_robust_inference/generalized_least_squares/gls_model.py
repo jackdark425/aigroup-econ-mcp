@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 import numpy as np
 import pandas as pd
 from scipy import stats
+import statsmodels.api as sm
 
 from tools.decorators import with_file_support_decorator as econometric_tool, validate_input
 
@@ -59,7 +60,7 @@ def gls_regression(
     
     # 添加常数项
     if constant:
-        X = np.column_stack([np.ones(len(X)), X])
+        X = sm.add_constant(X)
         if feature_names:
             feature_names = ["const"] + feature_names
         else:
@@ -68,145 +69,62 @@ def gls_regression(
         if not feature_names:
             feature_names = [f"x{i}" for i in range(X.shape[1])]
     
-    n, k = X.shape
-    
     # 检查数据维度
+    n, k = X.shape
     if n <= k:
         raise ValueError(f"观测数量({n})必须大于变量数量({k})")
     
     # 如果未提供协方差矩阵，则使用单位矩阵（等价于OLS）
     if sigma is None:
-        sigma = np.eye(n, dtype=np.float64)
+        model = sm.GLS(y, X)
     else:
-        sigma = np.asarray(sigma, dtype=np.float64)
+        sigma_array = np.asarray(sigma, dtype=np.float64)
+        # 检查协方差矩阵维度
+        if sigma_array.shape != (n, n):
+            raise ValueError(f"协方差矩阵sigma的维度必须是({n}, {n})，当前是{sigma_array.shape}")
+        model = sm.GLS(y, X, sigma=sigma_array)
     
-    # 检查协方差矩阵维度
-    if sigma.shape != (n, n):
-        raise ValueError(f"协方差矩阵sigma的维度必须是({n}, {n})，当前是{sigma.shape}")
-    
-    # 检查协方差矩阵是否包含无效值
-    if not np.all(np.isfinite(sigma)):
-        raise ValueError("协方差矩阵包含无效值（inf或NaN）")
-    
-    # 计算协方差矩阵的平方根逆矩阵
+    # 拟合模型
     try:
-        # 尝试Cholesky分解
-        L = np.linalg.cholesky(sigma)
-        sigma_inv = np.linalg.inv(sigma)
-        # 计算sigma的平方根逆矩阵
-        L_inv = np.linalg.inv(L)
-    except np.linalg.LinAlgError:
-        # 如果Cholesky分解失败，使用特征值分解
-        try:
-            eigenvals, eigenvecs = np.linalg.eigh(sigma)
-            # 处理接近零或负的特征值
-            eigenvals = np.maximum(eigenvals, 1e-10)
-            # 计算平方根逆矩阵
-            L_inv = eigenvecs @ np.diag(1.0 / np.sqrt(eigenvals)) @ eigenvecs.T
-            sigma_inv = L_inv.T @ L_inv
-        except np.linalg.LinAlgError:
-            # 最后的备选方案：添加对角扰动
-            sigma_reg = sigma + 1e-6 * np.eye(n)
-            L = np.linalg.cholesky(sigma_reg)
-            L_inv = np.linalg.inv(L)
-            sigma_inv = np.linalg.inv(sigma_reg)
+        results = model.fit()
+    except Exception as e:
+        raise ValueError(f"无法拟合GLS模型: {str(e)}")
     
-    # 变换数据
-    X_transformed = L_inv @ X
-    y_transformed = L_inv @ y
+    # 提取结果
+    coefficients = results.params.tolist()
+    std_errors = results.bse.tolist()
+    t_values = results.tvalues.tolist()
+    p_values = results.pvalues.tolist()
     
-    # 执行GLS回归: β = (X'*X)^(-1)X'*y
-    try:
-        XtX = X_transformed.T @ X_transformed
-        XtX_inv = np.linalg.inv(XtX)
-    except np.linalg.LinAlgError:
-        # 如果矩阵奇异，添加正则化项
-        XtX = X_transformed.T @ X_transformed
-        # 使用迹来确定正则化强度
-        reg_strength = 1e-10 * np.trace(XtX) / k if k > 0 and np.trace(XtX) > 0 else 1e-10
-        XtX_reg = XtX + reg_strength * np.eye(k)
-        XtX_inv = np.linalg.inv(XtX_reg)
-    
-    beta = XtX_inv @ X_transformed.T @ y_transformed
-    
-    # 计算预测值和残差
-    y_pred = X @ beta
-    residuals = y - y_pred
-    
-    # 计算各种统计量
-    df_resid = max(n - k, 1)  # 至少为1，避免除零错误
-    
-    # 残差平方和
-    ssr = np.sum(residuals ** 2)
-    
-    # 总平方和
-    y_mean = np.mean(y)
-    sst = np.sum((y - y_mean) ** 2)
-    
-    # 回归平方和
-    ssr_reg = max(sst - ssr, 0)  # 避免负数
-    
-    # 均方误差
-    mse = ssr / df_resid if df_resid > 0 else ssr
-    
-    # R方和调整R方
-    r_squared = 1 - (ssr / sst) if sst > 1e-10 else 0  # 避免除以接近零的数
-    adj_r_squared = 1 - ((ssr / df_resid) / (sst / max(n - 1, 1))) if sst > 1e-10 and n > k else 0
-    
-    # 系数标准误 (基于GLS估计的协方差矩阵)
-    # Var(β) = (X'Σ^(-1)X)^(-1)
-    var_beta = XtX_inv
-    # 避免负方差
-    diag_var_beta = np.diag(var_beta)
-    diag_var_beta = np.maximum(diag_var_beta, 0)
-    std_errors = np.sqrt(diag_var_beta)
-    # 避免标准误为零
-    std_errors = np.maximum(std_errors, 1e-12)
-    
-    # t统计量和p值
-    t_values = np.divide(beta, std_errors, out=np.zeros_like(beta), where=std_errors!=0)
-    p_values = 2 * (1 - stats.t.cdf(np.abs(t_values), df_resid))
-    
-    # 置信区间
+    # 计算置信区间
     alpha = 1 - confidence_level
-    t_critical = stats.t.ppf(1 - alpha/2, df_resid)
-    conf_int_lower = beta - t_critical * std_errors
-    conf_int_upper = beta + t_critical * std_errors
+    conf_int = results.conf_int(alpha=alpha)
+    conf_int_lower = conf_int[:, 0].tolist()
+    conf_int_upper = conf_int[:, 1].tolist()
+    
+    # 其他统计量
+    r_squared = float(results.rsquared)
+    adj_r_squared = float(results.rsquared_adj)
     
     # F统计量
-    if k > 1:
-        f_statistic = (ssr_reg / max(k - 1, 1)) / max(mse, 1e-10)
-        f_p_value = 1 - stats.f.cdf(f_statistic, max(k - 1, 1), df_resid)
-    else:
-        f_statistic = 0
-        f_p_value = 1
+    f_statistic = float(results.fvalue) if not np.isnan(results.fvalue) else 0.0
+    f_p_value = float(results.f_pvalue) if not np.isnan(results.f_pvalue) else 1.0
     
-    # 对数似然 (假设误差服从正态分布)
-    # 基于GLS残差计算
-    try:
-        sigma_det = np.linalg.det(sigma)
-        sigma_det = max(sigma_det, 1e-20)  # 避免log(0)
-        log_likelihood = -0.5 * (n * np.log(2 * np.pi) + 
-                                np.log(sigma_det) + 
-                                n)
-    except:
-        # 当无法计算行列式时的备选方案
-        log_likelihood = -0.5 * n * (np.log(2 * np.pi) + 
-                                    np.log(ssr / n + 1e-10) + 
-                                    1)
+    # 对数似然值
+    log_likelihood = float(results.llf)
 
     return GLSResult(
-        coefficients=beta.tolist(),
-        std_errors=std_errors.tolist(),
-        t_values=t_values.tolist(),
-        p_values=p_values.tolist(),
-        conf_int_lower=conf_int_lower.tolist(),
-        conf_int_upper=conf_int_upper.tolist(),
-        r_squared=float(r_squared),
-        adj_r_squared=float(adj_r_squared),
-        f_statistic=float(f_statistic),
-        f_p_value=float(f_p_value),
-        n_obs=n,
+        coefficients=coefficients,
+        std_errors=std_errors,
+        t_values=t_values,
+        p_values=p_values,
+        conf_int_lower=conf_int_lower,
+        conf_int_upper=conf_int_upper,
+        r_squared=r_squared,
+        adj_r_squared=adj_r_squared,
+        f_statistic=f_statistic,
+        f_p_value=f_p_value,
+        n_obs=int(results.nobs),
         feature_names=feature_names,
-        log_likelihood=float(log_likelihood)
+        log_likelihood=log_likelihood
     )

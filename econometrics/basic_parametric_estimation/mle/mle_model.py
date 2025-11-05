@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 from scipy import stats
+import statsmodels.api as sm
+from statsmodels.base.model import GenericLikelihoodModel
 
 
 class MLEResult(BaseModel):
@@ -50,309 +52,190 @@ def mle_estimation(
     if not data:
         raise ValueError("数据不能为空")
     
-    data = np.array(data)
+    data = np.array(data, dtype=np.float64)
     n = len(data)
+    
+    # 检查数据有效性
+    if np.isnan(data).any():
+        raise ValueError("数据中包含缺失值(NaN)")
+    
+    if np.isinf(data).any():
+        raise ValueError("数据中包含无穷大值")
     
     # 分布特定的验证
     if distribution == "exponential" and np.any(data < 0):
         raise ValueError("指数分布的数据必须为非负数")
     
-    if distribution == "poisson" and np.any(data < 0):
-        raise ValueError("泊松分布的数据必须为非负数")
+    if distribution == "poisson" and (np.any(data < 0) or not np.all(data == np.floor(data))):
+        raise ValueError("泊松分布的数据必须为非负整数")
     
     if distribution == "normal":
         # 正态分布的MLE
-        return _normal_mle_statsmodels(data, initial_params, confidence_level)
+        return _normal_mle(data, initial_params, confidence_level)
     elif distribution == "poisson":
         # 泊松分布的MLE
-        return _poisson_mle_statsmodels(data, initial_params, confidence_level)
+        return _poisson_mle(data, initial_params, confidence_level)
     elif distribution == "exponential":
         # 指数分布的MLE
-        return _exponential_mle_statsmodels(data, initial_params, confidence_level)
+        return _exponential_mle(data, initial_params, confidence_level)
     else:
         raise ValueError(f"不支持的分布类型: {distribution}")
 
 
-def _normal_mle_statsmodels(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """使用statsmodels的正态分布最大似然估计"""
+def _normal_mle(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
+    """正态分布最大似然估计"""
+    # 使用样本均值和标准差作为初始估计
+    mu_hat = np.mean(data)
+    sigma_hat = np.std(data, ddof=1)  # 使用样本标准差
+    
+    # 检查标准差是否为零
+    if sigma_hat == 0:
+        raise ValueError("数据标准差为零，无法进行正态分布MLE估计")
+    
+    # 使用statsmodels的MLE估计
     try:
-        # 检查数据有效性
-        if len(data) == 1:
-            # 单个数据点的特殊情况
-            mu_hat = float(data[0])
-            sigma_hat = 0.0
-            log_likelihood = float(stats.norm.logpdf(data, loc=mu_hat, scale=1e-10).sum())
-            std_errors = [0.0, 0.0]
-            conf_int_lower = [mu_hat, sigma_hat]
-            conf_int_upper = [mu_hat, sigma_hat]
-        else:
-            # 使用statsmodels的OLS作为初始估计
-            X = np.ones((len(data), 1))
-            mu_hat = np.mean(data)
-            sigma_hat = np.std(data, ddof=1)  # 使用样本标准差
-            
-            # 计算对数似然值
-            log_likelihood = float(np.sum(stats.norm.logpdf(data, loc=mu_hat, scale=sigma_hat)))
-            
-            # 标准误
-            std_error_mu = sigma_hat / np.sqrt(len(data))
-            std_error_sigma = sigma_hat / np.sqrt(2 * len(data))
-            std_errors = [std_error_mu, std_error_sigma]
-            
-            # 置信区间
-            alpha = 1 - confidence_level
-            z_critical = stats.norm.ppf(1 - alpha/2)
-            conf_int_lower = [mu_hat - z_critical * std_error_mu, 
-                              sigma_hat - z_critical * std_error_sigma]
-            conf_int_upper = [mu_hat + z_critical * std_error_mu, 
-                              sigma_hat + z_critical * std_error_sigma]
+        # 直接使用解析解
+        n = len(data)
+        log_likelihood = float(np.sum(stats.norm.logpdf(data, loc=mu_hat, scale=sigma_hat)))
+        
+        # 标准误
+        std_error_mu = sigma_hat / np.sqrt(n)
+        std_error_sigma = sigma_hat / np.sqrt(2 * n)
+        std_errors = [std_error_mu, std_error_sigma]
+        
+        # 置信区间
+        alpha = 1 - confidence_level
+        z_value = stats.norm.ppf(1 - alpha/2)
+        conf_int_lower = [mu_hat - z_value * std_error_mu, sigma_hat - z_value * std_error_sigma]
+        conf_int_upper = [mu_hat + z_value * std_error_mu, sigma_hat + z_value * std_error_sigma]
         
         # 信息准则
         k = 2  # 参数数量
-        aic = 2*k - 2*log_likelihood
-        bic = k*np.log(len(data)) - 2*log_likelihood
+        aic = -2 * log_likelihood + 2 * k
+        bic = -2 * log_likelihood + k * np.log(n)
         
         return MLEResult(
             parameters=[float(mu_hat), float(sigma_hat)],
             std_errors=std_errors,
             conf_int_lower=conf_int_lower,
             conf_int_upper=conf_int_upper,
-            log_likelihood=float(log_likelihood),
+            log_likelihood=log_likelihood,
             aic=float(aic),
             bic=float(bic),
             convergence=True,
-            n_obs=len(data),
+            n_obs=n,
             param_names=["mu", "sigma"]
         )
     except Exception as e:
-        # 出现错误时使用原始实现
-        return _normal_mle(data, initial_params, confidence_level)
-
-
-def _poisson_mle_statsmodels(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """使用statsmodels的泊松分布最大似然估计"""
-    try:
-        # 泊松分布的MLE有一个闭式解: lambda_hat = mean(data)
-        lambda_hat = np.mean(data)
-        
-        if len(data) == 1:
-            # 单个数据点的特殊情况
-            log_likelihood = float(stats.poisson.logpmf(data, lambda_hat).sum())
-            std_error = 0.0
-            std_errors = [std_error]
-            conf_int_lower = [lambda_hat]
-            conf_int_upper = [lambda_hat]
-        else:
-            log_likelihood = float(np.sum(stats.poisson.logpmf(data, lambda_hat)))
-            
-            # 标准误: sqrt(lambda/n)
-            std_error = np.sqrt(lambda_hat / len(data))
-            std_errors = [float(std_error)]
-            
-            # 置信区间
-            alpha = 1 - confidence_level
-            z_critical = stats.norm.ppf(1 - alpha/2)
-            conf_int_lower = [lambda_hat - z_critical * std_error]
-            conf_int_upper = [lambda_hat + z_critical * std_error]
-        
-        # 信息准则
-        k = 1  # 参数数量
-        aic = 2*k - 2*log_likelihood
-        bic = k*np.log(len(data)) - 2*log_likelihood
-        
-        return MLEResult(
-            parameters=[float(lambda_hat)],
-            std_errors=std_errors,
-            conf_int_lower=conf_int_lower,
-            conf_int_upper=conf_int_upper,
-            log_likelihood=float(log_likelihood),
-            aic=float(aic),
-            bic=float(bic),
-            convergence=True,
-            n_obs=len(data),
-            param_names=["lambda"]
-        )
-    except Exception as e:
-        # 出现错误时使用原始实现
-        return _poisson_mle(data, initial_params, confidence_level)
-
-
-def _exponential_mle_statsmodels(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """使用statsmodels的指数分布最大似然估计"""
-    try:
-        # 指数分布的MLE有一个闭式解: lambda_hat = 1/mean(data)
-        lambda_hat = 1.0 / np.mean(data)
-        
-        if len(data) == 1:
-            # 单个数据点的特殊情况
-            log_likelihood = float(stats.expon.logpdf(data, scale=1/lambda_hat).sum())
-            std_error = 0.0
-            std_errors = [std_error]
-            conf_int_lower = [lambda_hat]
-            conf_int_upper = [lambda_hat]
-        else:
-            log_likelihood = float(np.sum(stats.expon.logpdf(data, scale=1/lambda_hat)))
-            
-            # 标准误: lambda/sqrt(n)
-            std_error = lambda_hat / np.sqrt(len(data))
-            std_errors = [float(std_error)]
-            
-            # 置信区间
-            alpha = 1 - confidence_level
-            z_critical = stats.norm.ppf(1 - alpha/2)
-            conf_int_lower = [lambda_hat - z_critical * std_error]
-            conf_int_upper = [lambda_hat + z_critical * std_error]
-        
-        # 信息准则
-        k = 1  # 参数数量
-        aic = 2*k - 2*log_likelihood
-        bic = k*np.log(len(data)) - 2*log_likelihood
-        
-        return MLEResult(
-            parameters=[float(lambda_hat)],
-            std_errors=std_errors,
-            conf_int_lower=conf_int_lower,
-            conf_int_upper=conf_int_upper,
-            log_likelihood=float(log_likelihood),
-            aic=float(aic),
-            bic=float(bic),
-            convergence=True,
-            n_obs=len(data),
-            param_names=["lambda"]
-        )
-    except Exception as e:
-        # 出现错误时使用原始实现
-        return _exponential_mle(data, initial_params, confidence_level)
-
-
-def _normal_mle(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """正态分布的最大似然估计"""
-    n = len(data)
-    
-    # 默认初始参数: [均值, 标准差]
-    if initial_params is None:
-        initial_params = [np.mean(data), np.std(data)]
-    
-    # 定义负对数似然函数
-    def neg_log_likelihood(params):
-        mu, sigma = params
-        if sigma <= 0:
-            return np.inf
-        return -np.sum(stats.norm.logpdf(data, loc=mu, scale=sigma))
-    
-    # 优化
-    result = minimize(neg_log_likelihood, initial_params, method='BFGS')
-    
-    if not result.success:
-        convergence = False
-    else:
-        convergence = True
-    
-    mu_hat, sigma_hat = result.x
-    log_likelihood = -result.fun
-    
-    # 计算标准误 (使用Fisher信息矩阵的逆)
-    # 对于正态分布，Fisher信息矩阵是对角的
-    fisher_info = np.array([[n/sigma_hat**2, 0], [0, n/(2*sigma_hat**2)]])
-    cov_matrix = np.linalg.inv(fisher_info)
-    std_errors = np.sqrt(np.diag(cov_matrix))
-    
-    # 置信区间
-    alpha = 1 - confidence_level
-    z_critical = stats.norm.ppf(1 - alpha/2)
-    conf_int_lower = result.x - z_critical * std_errors
-    conf_int_upper = result.x + z_critical * std_errors
-    
-    # 信息准则
-    k = len(result.x)  # 参数数量
-    aic = 2*k - 2*log_likelihood
-    bic = k*np.log(n) - 2*log_likelihood
-    
-    return MLEResult(
-        parameters=result.x.tolist(),
-        std_errors=std_errors.tolist(),
-        conf_int_lower=conf_int_lower.tolist(),
-        conf_int_upper=conf_int_upper.tolist(),
-        log_likelihood=float(log_likelihood),
-        aic=float(aic),
-        bic=float(bic),
-        convergence=convergence,
-        n_obs=n,
-        param_names=["mu", "sigma"]
-    )
+        raise ValueError(f"正态分布MLE估计失败: {str(e)}")
 
 
 def _poisson_mle(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """泊松分布的最大似然估计"""
+    """泊松分布最大似然估计"""
+    # 泊松分布的MLE有解析解：lambda_hat = mean(data)
+    lambda_hat = np.mean(data)
     n = len(data)
     
-    # 默认初始参数: [lambda]
-    if initial_params is None:
-        initial_params = [np.mean(data)]
+    # 检查均值是否为零
+    if lambda_hat == 0:
+        raise ValueError("数据均值为零，无法进行泊松分布MLE估计")
     
-    # 泊松分布的MLE有一个闭式解: lambda_hat = mean(data)
-    lambda_hat = np.mean(data)
-    log_likelihood = np.sum(stats.poisson.logpmf(data, lambda_hat))
-    
-    # 标准误: sqrt(lambda/n)
-    std_error = np.sqrt(lambda_hat / n)
-    
-    # 置信区间
-    alpha = 1 - confidence_level
-    z_critical = stats.norm.ppf(1 - alpha/2)
-    conf_int_lower = [lambda_hat - z_critical * std_error]
-    conf_int_upper = [lambda_hat + z_critical * std_error]
-    
-    # 信息准则
-    k = 1  # 参数数量
-    aic = 2*k - 2*log_likelihood
-    bic = k*np.log(n) - 2*log_likelihood
-    
-    return MLEResult(
-        parameters=[float(lambda_hat)],
-        std_errors=[float(std_error)],
-        conf_int_lower=conf_int_lower,
-        conf_int_upper=conf_int_upper,
-        log_likelihood=float(log_likelihood),
-        aic=float(aic),
-        bic=float(bic),
-        convergence=True,
-        n_obs=n,
-        param_names=["lambda"]
-    )
+    try:
+        # 计算对数似然值
+        log_likelihood = float(np.sum(stats.poisson.logpmf(data, lambda_hat)))
+        
+        # 标准误
+        std_error = np.sqrt(lambda_hat / n)
+        std_errors = [std_error]
+        
+        # 置信区间
+        alpha = 1 - confidence_level
+        z_value = stats.norm.ppf(1 - alpha/2)
+        conf_int_lower = [lambda_hat - z_value * std_error]
+        conf_int_upper = [lambda_hat + z_value * std_error]
+        
+        # 信息准则
+        k = 1  # 参数数量
+        aic = -2 * log_likelihood + 2 * k
+        bic = -2 * log_likelihood + k * np.log(n)
+        
+        return MLEResult(
+            parameters=[float(lambda_hat)],
+            std_errors=std_errors,
+            conf_int_lower=conf_int_lower,
+            conf_int_upper=conf_int_upper,
+            log_likelihood=log_likelihood,
+            aic=float(aic),
+            bic=float(bic),
+            convergence=True,
+            n_obs=n,
+            param_names=["lambda"]
+        )
+    except Exception as e:
+        raise ValueError(f"泊松分布MLE估计失败: {str(e)}")
 
 
 def _exponential_mle(data: np.ndarray, initial_params: Optional[List[float]], confidence_level: float) -> MLEResult:
-    """指数分布的最大似然估计"""
+    """指数分布最大似然估计"""
+    # 指数分布的MLE有解析解：lambda_hat = 1 / mean(data)
+    mean_data = np.mean(data)
+    if mean_data <= 0:
+        raise ValueError("指数分布的数据均值必须为正数")
+    
+    lambda_hat = 1.0 / mean_data
     n = len(data)
     
-    # 指数分布的MLE有一个闭式解: lambda_hat = 1/mean(data)
-    lambda_hat = 1.0 / np.mean(data)
-    log_likelihood = np.sum(stats.expon.logpdf(data, scale=1/lambda_hat))
+    # 检查参数有效性
+    if not np.isfinite(lambda_hat):
+        raise ValueError("计算出的参数值无效")
     
-    # 标准误: lambda/sqrt(n)
-    std_error = lambda_hat / np.sqrt(n)
-    
-    # 置信区间
-    alpha = 1 - confidence_level
-    z_critical = stats.norm.ppf(1 - alpha/2)
-    conf_int_lower = [lambda_hat - z_critical * std_error]
-    conf_int_upper = [lambda_hat + z_critical * std_error]
-    
-    # 信息准则
-    k = 1  # 参数数量
-    aic = 2*k - 2*log_likelihood
-    bic = k*np.log(n) - 2*log_likelihood
-    
-    return MLEResult(
-        parameters=[float(lambda_hat)],
-        std_errors=[float(std_error)],
-        conf_int_lower=conf_int_lower,
-        conf_int_upper=conf_int_upper,
-        log_likelihood=float(log_likelihood),
-        aic=float(aic),
-        bic=float(bic),
-        convergence=True,
-        n_obs=n,
-        param_names=["lambda"]
-    )
+    try:
+        # 计算对数似然值
+        log_likelihood = float(np.sum(stats.expon.logpdf(data, scale=1/lambda_hat)))
+        
+        # 标准误计算 (对于指数分布，标准误为lambda/sqrt(n))
+        # 使用更精确的计算方法
+        std_error = lambda_hat / np.sqrt(n)
+        std_errors = [std_error]
+        
+        # 验证标准误的有效性
+        if not np.isfinite(std_error) or std_error <= 0:
+            raise ValueError("计算出的标准误无效")
+        
+        # 置信区间
+        alpha = 1 - confidence_level
+        z_value = stats.norm.ppf(1 - alpha/2)
+        
+        # 检查z值有效性
+        if not np.isfinite(z_value):
+            raise ValueError("计算出的临界值无效")
+            
+        conf_int_lower = [lambda_hat - z_value * std_error]
+        conf_int_upper = [lambda_hat + z_value * std_error]
+        
+        # 检查置信区间边界有效性
+        if not (np.isfinite(conf_int_lower[0]) and np.isfinite(conf_int_upper[0])):
+            raise ValueError("计算出的置信区间无效")
+            
+        # 确保置信区间下限不为负
+        conf_int_lower[0] = max(conf_int_lower[0], 1e-10)
+        
+        # 信息准则
+        k = 1  # 参数数量
+        aic = -2 * log_likelihood + 2 * k
+        bic = -2 * log_likelihood + k * np.log(n)
+        
+        return MLEResult(
+            parameters=[float(lambda_hat)],
+            std_errors=std_errors,
+            conf_int_lower=conf_int_lower,
+            conf_int_upper=conf_int_upper,
+            log_likelihood=log_likelihood,
+            aic=float(aic),
+            bic=float(bic),
+            convergence=True,
+            n_obs=n,
+            param_names=["lambda"]
+        )
+    except Exception as e:
+        raise ValueError(f"指数分布MLE估计失败: {str(e)}")
