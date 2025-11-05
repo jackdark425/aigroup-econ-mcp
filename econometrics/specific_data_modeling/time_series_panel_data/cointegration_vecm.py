@@ -22,13 +22,13 @@ class VECMResult(BaseModel):
     """VECM模型结果"""
     model_type: str = Field(..., description="模型类型")
     coint_rank: int = Field(..., description="协整秩")
-    coefficients: List[float] = Field(..., description="回归系数")
-    std_errors: Optional[List[float]] = Field(None, description="系数标准误")
-    t_values: Optional[List[float]] = Field(None, description="t统计量")
-    p_values: Optional[List[float]] = Field(None, description="p值")
-    alpha: Optional[List[float]] = Field(None, description="调整系数")
-    beta: Optional[List[float]] = Field(None, description="协整向量")
-    gamma: Optional[List[float]] = Field(None, description="短期系数")
+    coefficients: List[List[float]] = Field(..., description="回归系数矩阵")
+    std_errors: Optional[List[List[float]]] = Field(None, description="系数标准误矩阵")
+    t_values: Optional[List[List[float]]] = Field(None, description="t统计量矩阵")
+    p_values: Optional[List[List[float]]] = Field(None, description="p值矩阵")
+    alpha: Optional[List[List[float]]] = Field(None, description="调整系数矩阵")
+    beta: Optional[List[List[float]]] = Field(None, description="协整向量矩阵")
+    gamma: Optional[List[List[float]]] = Field(None, description="短期系数矩阵")
     log_likelihood: Optional[float] = Field(None, description="对数似然值")
     aic: Optional[float] = Field(None, description="赤池信息准则")
     bic: Optional[float] = Field(None, description="贝叶斯信息准则")
@@ -43,7 +43,7 @@ def engle_granger_cointegration_test(
     Engle-Granger协整检验实现
     
     Args:
-        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
+        data: 多元时间序列数据 (格式: 每个子列表代表一个变量的时间序列)
         variables: 变量名称列表
         
     Returns:
@@ -56,8 +56,13 @@ def engle_granger_cointegration_test(
         if not data or len(data) == 0 or len(data[0]) == 0:
             raise ValueError("输入数据不能为空")
         
+        # 检查所有时间序列长度是否一致
+        series_lengths = [len(series) for series in data]
+        if len(set(series_lengths)) > 1:
+            raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
+        
         # 转换数据格式
-        data_array = np.array(data)
+        data_array = np.array(data, dtype=np.float64)
         
         # 确保数据是正确的二维格式
         if len(data_array.shape) != 2:
@@ -68,11 +73,6 @@ def engle_granger_cointegration_test(
             # 使用第一个变量作为因变量，其余作为自变量进行协整检验
             y = data_array[0]
             x_variables = data_array[1:]
-            
-            # 检查所有时间序列长度是否一致
-            series_lengths = [len(series) for series in data_array]
-            if len(set(series_lengths)) > 1:
-                raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
             
             # 如果只有一个自变量，直接执行协整检验
             if x_variables.shape[0] == 1:
@@ -111,6 +111,10 @@ def engle_granger_cointegration_test(
                         if i < len(critical_values):
                             crit_vals[name] = float(critical_values[i])
             
+            # 创建变量名
+            if variables is None:
+                variables = [f"Variable_{i}" for i in range(len(data))]
+            
             return CointegrationResult(
                 model_type="Engle-Granger Cointegration Test",
                 test_statistic=float(test_statistic),
@@ -142,7 +146,7 @@ def johansen_cointegration_test(
     Johansen协整检验实现
     
     Args:
-        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
+        data: 多元时间序列数据 (格式: 每个子列表代表一个变量的时间序列)
         variables: 变量名称列表
         
     Returns:
@@ -156,8 +160,13 @@ def johansen_cointegration_test(
         if not data or len(data) == 0 or len(data[0]) == 0:
             raise ValueError("输入数据不能为空")
         
+        # 检查所有时间序列长度是否一致
+        series_lengths = [len(series) for series in data]
+        if len(set(series_lengths)) > 1:
+            raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
+        
         # 转换数据格式，确保是二维数组
-        data_array = np.array(data)
+        data_array = np.array(data, dtype=np.float64)
         
         # 确保数据是正确的二维格式 (n_variables, n_observations)
         if len(data_array.shape) != 2:
@@ -219,7 +228,7 @@ def vecm_model(
     向量误差修正模型(VECM)实现
     
     Args:
-        data: 多元时间序列数据 (格式: 每行一个变量的时间序列)
+        data: 多元时间序列数据 (格式: 每个子列表代表一个变量的时间序列)
         coint_rank: 协整秩
         variables: 变量名称列表
         
@@ -234,8 +243,13 @@ def vecm_model(
         if not data or len(data) == 0 or len(data[0]) == 0:
             raise ValueError("输入数据不能为空")
         
+        # 检查所有时间序列长度是否一致
+        series_lengths = [len(series) for series in data]
+        if len(set(series_lengths)) > 1:
+            raise ValueError(f"所有时间序列的长度必须一致，当前长度分别为: {series_lengths}")
+        
         # 转换数据格式，确保是二维数组
-        data_array = np.array(data)
+        data_array = np.array(data, dtype=np.float64)
         
         # 确保数据是正确的二维格式 (n_variables, n_observations)
         if len(data_array.shape) != 2:
@@ -256,22 +270,44 @@ def vecm_model(
         fitted_model = model.fit()
         
         # 提取参数估计结果
-        # 展平系数矩阵
-        coeffs = fitted_model.params.flatten().tolist() if fitted_model.params is not None else []
+        # 按照方程分别组织系数矩阵
+        n_vars = len(variables)
+        coeffs = []
+        std_errors = []
+        t_values = []
+        p_values = []
         
-        # 提取标准误
-        std_errors = fitted_model.stderr.flatten().tolist() if fitted_model.stderr is not None else None
-        
-        # 提取t值
-        t_values = fitted_model.tvalues.flatten().tolist() if fitted_model.tvalues is not None else None
-        
-        # 提取p值
-        p_values = fitted_model.pvalues.flatten().tolist() if fitted_model.pvalues is not None else None
+        # 处理参数矩阵，按方程组织
+        if fitted_model.params is not None:
+            params_array = np.array(fitted_model.params)
+            # params_array的形状可能是 (总参数数量, 变量数量)
+            for i in range(n_vars):
+                coeffs.append(params_array[:, i].tolist())
+                
+        if fitted_model.stderr is not None:
+            stderr_array = np.array(fitted_model.stderr)
+            for i in range(n_vars):
+                std_errors.append(stderr_array[:, i].tolist())
+                
+        if fitted_model.tvalues is not None:
+            tvalues_array = np.array(fitted_model.tvalues)
+            for i in range(n_vars):
+                t_values.append(tvalues_array[:, i].tolist())
+                
+        if fitted_model.pvalues is not None:
+            pvalues_array = np.array(fitted_model.pvalues)
+            for i in range(n_vars):
+                p_values.append(pvalues_array[:, i].tolist())
         
         # 提取alpha, beta, gamma矩阵
-        alpha = fitted_model.alpha.flatten().tolist() if hasattr(fitted_model, 'alpha') and fitted_model.alpha is not None else None
-        beta = fitted_model.beta.flatten().tolist() if hasattr(fitted_model, 'beta') and fitted_model.beta is not None else None
-        gamma = fitted_model.gamma.flatten().tolist() if hasattr(fitted_model, 'gamma') and fitted_model.gamma is not None else None
+        alpha = fitted_model.alpha.tolist() if hasattr(fitted_model, 'alpha') and fitted_model.alpha is not None else None
+        beta = fitted_model.beta.tolist() if hasattr(fitted_model, 'beta') and fitted_model.beta is not None else None
+        
+        # gamma可能有复杂的结构，需要特殊处理
+        gamma = None
+        if hasattr(fitted_model, 'gamma') and fitted_model.gamma is not None:
+            gamma_array = np.array(fitted_model.gamma)
+            gamma = gamma_array.tolist()
         
         # 获取对数似然值和信息准则
         log_likelihood = float(fitted_model.llf) if hasattr(fitted_model, 'llf') else None
@@ -282,9 +318,9 @@ def vecm_model(
             model_type=f"VECM({coint_rank})",
             coint_rank=coint_rank,
             coefficients=coeffs,
-            std_errors=std_errors,
-            t_values=t_values,
-            p_values=p_values,
+            std_errors=std_errors if std_errors else None,
+            t_values=t_values if t_values else None,
+            p_values=p_values if p_values else None,
             alpha=alpha,
             beta=beta,
             gamma=gamma,

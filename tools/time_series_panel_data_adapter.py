@@ -337,7 +337,7 @@ class TimeSeriesPanelDataAdapter:
         VAR/SVAR模型适配器
         
         Args:
-            data: 多元时间序列数据
+            data: 多元时间序列数据 (格式: 每个子列表代表一个时间点的所有变量值)
             file_path: 数据文件路径
             model_type: 模型类型 ("var", "svar")
             lags: 滞后期数
@@ -358,16 +358,39 @@ class TimeSeriesPanelDataAdapter:
         elif data is None:
             raise ValueError("Must provide either file_path or data")
         
-        # 2. 调用核心算法
+        # 2. 数据格式转换：从时间点格式转换为变量格式
+        # 输入格式: [[var1_t1, var2_t1], [var1_t2, var2_t2], ...]
+        # 需要转换为: [[var1_t1, var1_t2, ...], [var2_t1, var2_t2, ...]]
+        if data and len(data) > 0:
+            n_vars = len(data[0])
+            n_obs = len(data)
+            
+            # 转换数据格式
+            var_data = []
+            for var_idx in range(n_vars):
+                var_series = [data[t][var_idx] for t in range(n_obs)]
+                var_data.append(var_series)
+            
+            # 如果没有提供变量名，自动生成
+            if variables is None:
+                variables = [f"Variable_{i}" for i in range(n_vars)]
+            
+            # 检查变量数量是否与数据一致
+            if len(variables) != n_vars:
+                raise ValueError(f"变量名称数量({len(variables)})与数据列数({n_vars})不一致")
+        else:
+            raise ValueError("数据不能为空")
+        
+        # 3. 调用核心算法
         result: CoreVARResult = None
         if model_type == "var":
-            result = core_var_model(data, lags=lags, variables=variables)
+            result = core_var_model(var_data, lags=lags, variables=variables)
         elif model_type == "svar":
-            result = core_svar_model(data, lags=lags, variables=variables, a_matrix=a_matrix, b_matrix=b_matrix)
+            result = core_svar_model(var_data, lags=lags, variables=variables, a_matrix=a_matrix, b_matrix=b_matrix)
         else:
             raise ValueError(f"Unsupported model_type: {model_type}")
         
-        # 3. 格式化输出
+        # 4. 格式化输出
         if output_format == "json":
             return json.dumps(result.dict(), ensure_ascii=False, indent=2)
         else:
@@ -399,7 +422,7 @@ class TimeSeriesPanelDataAdapter:
         协整分析适配器
         
         Args:
-            data: 多元时间序列数据
+            data: 多元时间序列数据 (格式: 每个子列表代表一个时间点的所有变量值)
             file_path: 数据文件路径
             analysis_type: 分析类型 ("engle-granger", "johansen", "vecm")
             variables: 变量名称列表
@@ -418,18 +441,41 @@ class TimeSeriesPanelDataAdapter:
         elif data is None:
             raise ValueError("Must provide either file_path or data")
         
-        # 2. 调用核心算法
+        # 2. 数据格式转换：从时间点格式转换为变量格式
+        # 输入格式: [[var1_t1, var2_t1], [var1_t2, var2_t2], ...]
+        # 需要转换为: [[var1_t1, var1_t2, ...], [var2_t1, var2_t2, ...]]
+        if data and len(data) > 0:
+            n_vars = len(data[0])
+            n_obs = len(data)
+            
+            # 转换数据格式
+            var_data = []
+            for var_idx in range(n_vars):
+                var_series = [data[t][var_idx] for t in range(n_obs)]
+                var_data.append(var_series)
+            
+            # 如果没有提供变量名，自动生成
+            if variables is None:
+                variables = [f"Variable_{i}" for i in range(n_vars)]
+            
+            # 检查变量数量是否与数据一致
+            if len(variables) != n_vars:
+                raise ValueError(f"变量名称数量({len(variables)})与数据列数({n_vars})不一致")
+        else:
+            raise ValueError("数据不能为空")
+        
+        # 3. 调用核心算法
         result = None
         if analysis_type == "engle-granger":
-            result: CoreCointegrationResult = core_engle_granger_cointegration_test(data, variables=variables)
+            result: CoreCointegrationResult = core_engle_granger_cointegration_test(var_data, variables=variables)
         elif analysis_type == "johansen":
-            result: CoreCointegrationResult = core_johansen_cointegration_test(data, variables=variables)
+            result: CoreCointegrationResult = core_johansen_cointegration_test(var_data, variables=variables)
         elif analysis_type == "vecm":
-            result: CoreVECMResult = core_vecm_model(data, coint_rank=coint_rank, variables=variables)
+            result: CoreVECMResult = core_vecm_model(var_data, coint_rank=coint_rank, variables=variables)
         else:
             raise ValueError(f"Unsupported analysis_type: {analysis_type}")
         
-        # 3. 格式化输出
+        # 4. 格式化输出
         if output_format == "json":
             return json.dumps(result.dict(), ensure_ascii=False, indent=2)
         else:
@@ -498,14 +544,31 @@ class TimeSeriesPanelDataAdapter:
         elif y_data is None or x_data is None or entity_ids is None or time_periods is None:
             raise ValueError("Must provide either file_path or (y_data, x_data, entity_ids, time_periods)")
         
-        # 2. 调用核心算法
-        result: CoreDynamicPanelResult = None
-        if model_type == "diff_gmm":
-            result = core_diff_gmm_model(y_data, x_data, entity_ids, time_periods, lags=lags)
-        elif model_type == "sys_gmm":
-            result = core_sys_gmm_model(y_data, x_data, entity_ids, time_periods, lags=lags)
-        else:
-            raise ValueError(f"Unsupported model_type: {model_type}")
+        # 2. 调用核心算法（使用改进的手动实现）
+        try:
+            result: CoreDynamicPanelResult = None
+            if model_type == "diff_gmm":
+                result = core_diff_gmm_model(y_data, x_data, entity_ids, time_periods, lags=lags)
+            elif model_type == "sys_gmm":
+                result = core_sys_gmm_model(y_data, x_data, entity_ids, time_periods, lags=lags)
+            else:
+                raise ValueError(f"Unsupported model_type: {model_type}")
+        except Exception as e:
+            # 如果模型拟合失败，返回JSON格式的错误信息
+            error_info = {
+                "error": True,
+                "message": f"动态面板模型({model_type})拟合失败",
+                "details": str(e),
+                "suggestions": [
+                    "数据格式问题 - 请检查数据维度是否一致",
+                    "样本量不足 - 建议增加观测数量或减少滞后期数",
+                    "多重共线性 - 尝试减少自变量数量或使用正则化",
+                    "工具变量不足 - 确保有足够的工具变量",
+                    "数值稳定性 - 尝试标准化数据或增加样本量"
+                ],
+                "note": "当前使用手动实现的GMM算法，无需安装linearmodels包"
+            }
+            return json.dumps(error_info, ensure_ascii=False, indent=2)
         
         # 3. 格式化输出
         if output_format == "json":

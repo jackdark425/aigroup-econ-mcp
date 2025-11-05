@@ -318,12 +318,11 @@ class ModelSpecificationAdapter:
     @staticmethod
     def simultaneous_equations(
         y_data: Optional[List[List[float]]] = None,
-        x_data: Optional[List[List[List[float]]]] = None,
+        x_data: Optional[List[List[float]]] = None,
         file_path: Optional[str] = None,
         instruments: Optional[List[List[float]]] = None,
         equation_names: Optional[List[str]] = None,
-        endogenous_vars: Optional[List[str]] = None,
-        exogenous_vars: Optional[List[str]] = None,
+        instrument_names: Optional[List[str]] = None,
         constant: bool = True,
         output_format: str = "json",
         save_path: Optional[str] = None
@@ -338,6 +337,7 @@ class ModelSpecificationAdapter:
             x_data = data.get("x_data") or x_data
             instruments = data.get("instruments") or instruments
             equation_names = data.get("equation_names") or equation_names
+            instrument_names = data.get("instrument_names") or instrument_names
         elif y_data is None or x_data is None or instruments is None:
             raise ValueError("必须提供文件路径(file_path)或直接数据(y_data、x_data和instruments)")
         
@@ -347,8 +347,7 @@ class ModelSpecificationAdapter:
             x_data=x_data,
             instruments=instruments,
             equation_names=equation_names,
-            endogenous_vars=endogenous_vars,
-            exogenous_vars=exogenous_vars,
+            instrument_names=instrument_names,
             constant=constant
         )
         

@@ -345,18 +345,37 @@ class ModelSpecificationTools(ToolGroup):
     @staticmethod
     async def simultaneous_equations_tool(
         y_data: Optional[List[List[float]]] = None,
-        x_data: Optional[List[List[List[float]]]] = None,
+        x_data: Optional[List[List[float]]] = None,
         file_path: Optional[str] = None,
         instruments: Optional[List[List[float]]] = None,
         equation_names: Optional[List[str]] = None,
-        endogenous_vars: Optional[List[str]] = None,
-        exogenous_vars: Optional[List[str]] = None,
+        instrument_names: Optional[List[str]] = None,
         constant: bool = True,
         output_format: str = "json",
         save_path: Optional[str] = None,
         ctx: Context[ServerSession, None] = None
     ) -> str:
-        """Simultaneous Equations Model (2SLS)"""
+        """
+        Simultaneous Equations Model (2SLS)
+        
+        数据格式说明:
+        - y_data: 因变量数据，二维列表，每个子列表代表一个方程的因变量时间序列
+        - x_data: 自变量数据，二维列表，每个子列表代表一个观测的所有自变量值
+        - instruments: 工具变量数据，二维列表，每个子列表代表一个观测的所有工具变量值
+        
+        重要: 所有数据的观测数量必须相同
+        
+        示例调用:
+        {
+          "y_data": [[1.0, 1.2, 1.4, 1.6], [2.0, 2.2, 2.4, 2.6]],
+          "x_data": [[1.5, 2.5], [1.7, 2.7], [1.9, 2.9], [2.1, 3.1]],
+          "instruments": [[1.8, 2.8], [2.0, 3.0], [2.2, 3.2], [2.4, 3.4]],
+          "equation_names": ["Demand", "Supply"],
+          "instrument_names": ["Income", "Price"],
+          "constant": true,
+          "output_format": "json"
+        }
+        """
         try:
             if ctx:
                 await ctx.info("Starting simultaneous equations model analysis...")
@@ -367,8 +386,7 @@ class ModelSpecificationTools(ToolGroup):
                 file_path=file_path,
                 instruments=instruments,
                 equation_names=equation_names,
-                endogenous_vars=endogenous_vars,
-                exogenous_vars=exogenous_vars,
+                instrument_names=instrument_names,
                 constant=constant,
                 output_format=output_format,
                 save_path=save_path

@@ -248,10 +248,39 @@ class TimeSeriesTools(ToolGroup):
         save_path: Optional[str] = None,
         ctx: Context[ServerSession, None] = None
     ) -> str:
-        """VAR/SVAR Model"""
+        """
+        VAR/SVAR Model
+        
+        数据格式说明:
+        - data: 多元时间序列数据，格式为二维列表
+        - 每个子列表代表一个时间点的所有变量值
+        - 示例: [[var1_t1, var2_t1, var3_t1], [var1_t2, var2_t2, var3_t2], ...]
+        - variables: 变量名称列表，如 ["GDP", "Inflation", "Interest"]
+        
+        示例调用:
+        {
+          "data": [[1.0, 2.5, 1.8], [1.2, 2.7, 2.0], [1.4, 2.9, 2.2]],
+          "model_type": "var",
+          "lags": 1,
+          "variables": ["GDP", "Inflation", "Interest"],
+          "output_format": "json"
+        }
+        """
         try:
             if ctx:
                 await ctx.info(f"Starting {model_type.upper()} model analysis...")
+            
+            # 数据验证和转换
+            if data is not None:
+                # 确保数据是二维列表格式
+                if isinstance(data[0], (int, float)):
+                    data = [data]  # 如果是一维数据，转换为二维
+                elif isinstance(data[0], list) and len(data) > 0 and isinstance(data[0][0], (int, float)):
+                    # 已经是正确的二维格式
+                    pass
+                else:
+                    raise ValueError("数据格式不正确，应为二维列表")
+            
             result = var_svar_adapter(data, file_path, model_type, lags, variables, a_matrix, b_matrix, output_format, save_path)
             if ctx:
                 await ctx.info(f"{model_type.upper()} analysis complete")
@@ -396,6 +425,18 @@ class TimeSeriesTools(ToolGroup):
         try:
             if ctx:
                 await ctx.info(f"Starting {analysis_type} cointegration analysis...")
+            
+            # 数据验证和转换
+            if data is not None:
+                # 确保数据是二维列表格式，每行代表一个时间点的多个变量
+                if isinstance(data[0], (int, float)):
+                    data = [data]  # 如果是一维数据，转换为二维
+                elif isinstance(data[0], list) and len(data) > 0 and isinstance(data[0][0], (int, float)):
+                    # 已经是正确的二维格式
+                    pass
+                else:
+                    raise ValueError("数据格式不正确，应为二维列表，每行代表一个时间点的多个变量值")
+            
             result = cointegration_adapter(data, file_path, analysis_type, variables, coint_rank, output_format, save_path)
             if ctx:
                 await ctx.info(f"{analysis_type} analysis complete")
@@ -418,7 +459,28 @@ class TimeSeriesTools(ToolGroup):
         save_path: Optional[str] = None,
         ctx: Context[ServerSession, None] = None
     ) -> str:
-        """Dynamic Panel Data Model"""
+        """
+        Dynamic Panel Data Model
+        
+        数据格式说明:
+        - y_data: 因变量数据，一维列表，所有个体的因变量时间序列
+        - x_data: 自变量数据，二维列表，每个子列表代表一个自变量的完整时间序列
+        - entity_ids: 个体标识符，一维列表，标识每个观测属于哪个个体
+        - time_periods: 时间标识符，一维列表，标识每个观测的时间点
+        
+        重要: 所有数据的观测数量必须相同
+        
+        示例调用:
+        {
+          "y_data": [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8],
+          "x_data": [[1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1, 3.3]],
+          "entity_ids": [1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+          "time_periods": [1, 2, 3, 4, 5, 1, 2, 3, 4, 5],
+          "model_type": "diff_gmm",
+          "lags": 1,
+          "output_format": "json"
+        }
+        """
         try:
             if ctx:
                 await ctx.info(f"Starting {model_type} dynamic panel model...")
