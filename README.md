@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-1.4.3-orange.svg)
+![Version](https://img.shields.io/badge/Version-2.0.1-orange.svg)
 ![Tools](https://img.shields.io/badge/Tools-66-brightgreen.svg)
 
 ## 📋 目录
@@ -423,7 +423,7 @@ CPI: 2.1 2.3 1.9 2.4
 uvx aigroup-econ-mcp
 
 # 指定版本
-uvx aigroup-econ-mcp@1.4.3
+uvx aigroup-econ-mcp@2.0.0
 ```
 
 ### 方式2：pip安装
@@ -590,7 +590,7 @@ aigroup-econ-mcp/
 - **📝 完整文档** - 每个工具都有详细的参数说明和使用示例
 - **🧪 全面测试** - 单元测试和集成测试覆盖
 
-### 新增特性（v1.4.3）
+### 新增特性
 
 - 🎯 **66项专业工具** - 完整覆盖计量经济学核心方法
 - ✨ **11大工具组** - 基础参数估计(3) + 因果推断(13) + 分解分析(3) + 机器学习(8) + 微观计量(7) + 缺失数据处理(2) + 模型规范诊断(7) + 非参数方法(4) + 空间计量(6) + 统计推断(2) + 时序面板(11)

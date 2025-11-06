@@ -5,20 +5,24 @@ AIGroup Econometrics MCP - CLI 入口
 
 import sys
 import os
+import traceback
 from pathlib import Path
 
 def main():
     """CLI 主函数"""
     try:
+        print("正在启动 AIGroup Econometrics MCP 服务器...")
         # 导入并运行服务器
         from server import main as server_main
         server_main()
     except ImportError as e:
         print(f"导入错误: {e}")
+        traceback.print_exc()
         print("请确保所有依赖已正确安装")
         sys.exit(1)
     except Exception as e:
         print(f"启动服务器时出错: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 # 添加cli函数以匹配pyproject.toml中的入口点定义

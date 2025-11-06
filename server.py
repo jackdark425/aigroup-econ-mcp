@@ -5,6 +5,7 @@ AIGroup 计量经济学 MCP 服务器 - 简化修复版
 
 import sys
 import os
+import asyncio
 from typing import List, Optional, Union
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
@@ -81,7 +82,15 @@ def main():
     print("\n启动服务器...")
     print("=" * 60)
     
-    mcp.run(transport="stdio")
+    # 正确使用FastMCP.run方法，不传递timeout参数
+    try:
+        mcp.run(transport="stdio")
+    except KeyboardInterrupt:
+        print("\n服务器已停止")
+    except Exception as e:
+        print(f"\n服务器运行出错: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
