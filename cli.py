@@ -21,5 +21,8 @@ def main():
         print(f"启动服务器时出错: {e}")
         sys.exit(1)
 
+# 添加cli函数以匹配pyproject.toml中的入口点定义
+cli = main
+
 if __name__ == "__main__":
     main()

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aigroup_econ_mcp"
-version = "1.4.2"
+version = "1.4.3"
 description = "专业计量经济学MCP工具 - 100%覆盖Stata核心功能，30+项专业分析工具，支持CSV/JSON/TXT/Excel格式，让大模型更智能地进行数据分析"
 readme = "README.md"
 requires-python = ">=3.10"

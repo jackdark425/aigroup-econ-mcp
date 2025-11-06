@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-1.4.2-orange.svg)
+![Version](https://img.shields.io/badge/Version-1.4.3-orange.svg)
 ![Stata Coverage](https://img.shields.io/badge/Stata_Coverage-100%25-brightgreen.svg)
 
 ## 📋 目录
