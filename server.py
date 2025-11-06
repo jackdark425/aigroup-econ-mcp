@@ -29,6 +29,11 @@ mcp = FastMCP("aigroup-econ-mcp")
 print("正在自动发现工具组...")
 registry.auto_discover_groups()
 
+# 显示发现的工具组
+print(f"发现工具组数量: {len(registry.tool_groups)}")
+for group in registry.tool_groups:
+    print(f"  - {group.name}")
+
 # 直接注册所有工具
 print("正在注册工具...")
 for tool_name, tool_info in registry.get_all_tools().items():

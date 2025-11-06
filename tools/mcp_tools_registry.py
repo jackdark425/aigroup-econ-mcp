@@ -67,27 +67,37 @@ class ToolRegistry:
         # 扫描 mcp_tool_groups 目录
         groups_dir = Path(base_path) / "mcp_tool_groups"
         if not groups_dir.exists():
+            print(f"工具组目录不存在: {groups_dir}")
             return
+        
+        print(f"扫描工具组目录: {groups_dir}")
         
         # 导入所有工具组模块
         for module_file in groups_dir.glob("*_tools.py"):
             module_name = module_file.stem
+            print(f"发现工具组模块: {module_name}")
             try:
                 module = importlib.import_module(f"tools.mcp_tool_groups.{module_name}")
                 
                 # 查找工具组类
+                found_groups = []
                 for name, obj in inspect.getmembers(module):
-                    if (inspect.isclass(obj) and 
-                        issubclass(obj, ToolGroup) and 
+                    if (inspect.isclass(obj) and
+                        issubclass(obj, ToolGroup) and
                         obj != ToolGroup and
                         hasattr(obj, 'get_tools')):
                         
+                        found_groups.append(name)
                         # 实例化并注册
                         group_instance = obj()
                         self.register_group(group_instance)
+                        print(f"  注册工具组: {name}")
+                
+                if not found_groups:
+                    print(f"  在模块 {module_name} 中未找到工具组类")
                         
             except Exception as e:
-                print(f"Failed to load tool group from {module_name}: {e}")
+                print(f"加载工具组 {module_name} 失败: {e}")
     
     def get_all_tools(self) -> Dict[str, Dict[str, Any]]:
         """获取所有已注册的工具"""

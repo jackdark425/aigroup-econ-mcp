@@ -1,12 +1,12 @@
 # aigroup-econ-mcp - 专业计量经济学MCP工具
 
-🎯 **100%覆盖Stata核心功能** - 提供50项专业计量经济学分析工具，支持CSV/JSON/TXT多种数据格式
+🎯 **66项专业计量经济学分析工具** - 提供完整计量功能覆盖，支持CSV/JSON/TXT/Excel多种数据格式
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Version](https://img.shields.io/badge/Version-1.4.3-orange.svg)
-![Stata Coverage](https://img.shields.io/badge/Stata_Coverage-100%25-brightgreen.svg)
+![Tools](https://img.shields.io/badge/Tools-66-brightgreen.svg)
 
 ## 📋 目录
 
@@ -41,255 +41,234 @@ MCP设置中添加：
       "command": "uvx",
       "args": ["aigroup-econ-mcp"],
       "alwaysAllow": [
-        "descriptive_statistics", "ols_regression", "hypothesis_testing",
-        "time_series_analysis", "correlation_analysis", "panel_fixed_effects",
-        "panel_random_effects", "panel_hausman_test", "panel_unit_root_test",
-        "var_model_analysis", "vecm_model_analysis", "garch_model_analysis",
-        "state_space_model_analysis", "variance_decomposition_analysis",
-        "random_forest_regression_analysis", "gradient_boosting_regression_analysis",
-        "lasso_regression_analysis", "ridge_regression_analysis",
-        "cross_validation_analysis", "feature_importance_analysis_tool",
-        "logit_regression", "probit_regression", "poisson_count_regression",
-        "propensity_score_matching", "difference_in_differences",
-        "instrumental_variables_regression", "data_cleaning", "data_merge",
-        "reshape_to_long", "reshape_to_wide", "scatter_plot", "histogram_plot",
-        "correlation_heatmap", "wls_regression", "gmm_estimation", "bootstrap_analysis"
+        "basic_parametric_estimation_ols", "basic_parametric_estimation_mle", "basic_parametric_estimation_gmm",
+        "causal_difference_in_differences", "causal_instrumental_variables", "causal_propensity_score_matching",
+        "causal_fixed_effects", "causal_random_effects", "causal_regression_discontinuity",
+        "causal_synthetic_control", "causal_event_study", "causal_triple_difference",
+        "causal_mediation_analysis", "causal_moderation_analysis", "causal_control_function",
+        "causal_first_difference", "ml_random_forest", "ml_gradient_boosting",
+        "ml_support_vector_machine", "ml_neural_network", "ml_kmeans_clustering",
+        "ml_hierarchical_clustering", "ml_double_machine_learning", "ml_causal_forest",
+        "micro_logit", "micro_probit", "micro_multinomial_logit",
+        "micro_poisson", "micro_negative_binomial", "micro_tobit",
+        "micro_heckman", "model_diagnostic_tests", "generalized_least_squares",
+        "weighted_least_squares", "robust_errors_regression", "model_selection_criteria",
+        "regularized_regression", "simultaneous_equations_model", "time_series_arima_model",
+        "time_series_exponential_smoothing", "time_series_garch_model", "time_series_unit_root_tests",
+        "time_series_var_svar_model", "time_series_cointegration_analysis", "panel_data_dynamic_model",
+        "panel_data_diagnostics", "panel_var_model", "structural_break_tests",
+        "time_varying_parameter_models"
       ]
     }
   }
 }
 ```
 
-## ✨ 核心功能 - 50项功能覆盖
+## ✨ 核心功能 - 66项专业工具
 
-### 1. 基础与参数估计
+### 1. 基础参数估计 (3项)
 
 解决建立变量间的基础参数化关系并进行估计的问题。
 
-- **普通最小二乘法 (OLS)**
-- **最大似然估计 (MLE)**
-- **广义矩估计 (GMM)**
+- **普通最小二乘法 (OLS)** - `basic_parametric_estimation_ols`
+- **最大似然估计 (MLE)** - `basic_parametric_estimation_mle`
+- **广义矩估计 (GMM)** - `basic_parametric_estimation_gmm`
 
-### 2. 模型设定、诊断与稳健推断
-
-当基础模型的理想假设不成立时，修正模型或调整推断；对模型进行诊断和选择。
-
-- **稳健标准误**（处理异方差/自相关）
-- **广义最小二乘法 (GLS)**
-- **加权最小二乘法 (WLS)**
-- **岭回归/LASSO/弹性网络**（处理多重共线性/高维数据）
-- **联立方程模型**（处理双向因果关系）
-
-- **模型诊断**：异方差检验（White、Breusch-Pagan）、自相关检验（Durbin-Watson、Ljung-Box）、正态性检验（Jarque-Bera）、多重共线性诊断（VIF）、内生性检验（Durbin-Wu-Hausman）、残差诊断、影响点分析
-
-- **模型选择**：信息准则（AIC/BIC/HQIC）、交叉验证（K折、留一法）、格兰杰因果检验
-
-### 3. 因果识别策略
+### 2. 因果识别策略 (13项)
 
 在非实验数据中，识别变量间的因果关系（解决内生性问题）。
 
-- **工具变量法 (IV/2SLS)**
-- **控制函数法**
-- **面板数据模型**（固定效应、随机效应、一阶差分、Hausman检验）
-- **双重差分法 (DID)**
-- **三重差分法 (DDD)**
-- **事件研究法 (Event Study)**
-- **断点回归设计 (RDD)**
-- **合成控制法**
-- **匹配方法**（倾向得分匹配PSM、协变量平衡、倾向得分加权IPW、熵平衡法）
+- **双重差分法 (DID)** - `causal_difference_in_differences`
+- **工具变量法 (IV/2SLS)** - `causal_instrumental_variables`
+- **倾向得分匹配 (PSM)** - `causal_propensity_score_matching`
+- **固定效应模型** - `causal_fixed_effects`
+- **随机效应模型** - `causal_random_effects`
+- **回归断点设计 (RDD)** - `causal_regression_discontinuity`
+- **合成控制法** - `causal_synthetic_control`
+- **事件研究法** - `causal_event_study`
+- **三重差分法 (DDD)** - `causal_triple_difference`
+- **中介效应分析** - `causal_mediation_analysis`
+- **调节效应分析** - `causal_moderation_analysis`
+- **控制函数法** - `causal_control_function`
+- **一阶差分模型** - `causal_first_difference`
 
-- **效应分解与异质性**：中介效应分析（Baron-Kenny、Bootstrap检验、Sobel检验）、调节效应分析（交互项回归）、处理效应异质性 (HTE)、条件平均处理效应 (CATE)、因果森林
+### 3. 分解分析 (3项)
 
-- **稳健性检验**：敏感性分析、Rosenbaum bounds、双重机器学习 (Double ML)
+分析变量差异的来源和构成。
 
-### 4. 特定数据类型建模
+- **Oaxaca-Blinder分解** - `decomposition_oaxaca_blinder`
+- **方差分解 (ANOVA)** - `decomposition_variance_anova`
+- **时间序列分解** - `decomposition_time_series`
 
-针对因变量或数据结构的固有特性进行建模。
-
-#### 微观离散与受限数据
-
-因变量为分类、计数、截断等非连续情况。
-
-- **Logit/Probit**
-- **多项/有序/条件Logit**
-- **混合/嵌套Logit**
-- **Tobit**
-- **泊松/负二项回归**
-- **Heckman选择模型**
-
-#### 时间序列与面板数据
-
-分析具有时间维度数据的动态依赖、预测和非平稳性。
-
-- **ARIMA**
-- **指数平滑法**
-- **VAR/SVAR**
-- **GARCH**
-- **协整分析/VECM**
-- **面板VAR**
-
-- **平稳性与单位根检验**：ADF检验、PP检验、KPSS检验
-
-- **动态面板模型**：Arellano-Bond估计（差分GMM）、Blundell-Bond估计（系统GMM）
-
-- **结构突变检验**：Chow检验、Quandt-Andrews检验、Bai-Perron检验（多重断点）
-
-- **面板数据诊断**：Hausman检验（FE vs RE）、F检验（Pooled vs FE）、LM检验（Pooled vs RE）、组内相关性检验
-
-- **时变参数模型**：门限模型/转换回归（TAR/STAR）、马尔科夫转换模型
-
-#### 生存/持续时间数据
-
-分析"事件发生时间"数据并处理右删失。
-
-- **Kaplan-Meier估计量**
-- **Cox比例风险模型**
-- **加速失效时间模型**
-
-### 5. 空间计量经济学
-
-处理数据的空间依赖性和空间异质性。
-
-- **空间权重矩阵构建**（邻接、距离、K近邻矩阵）
-
-- **空间自相关检验**：Moran's I、Geary's C、局部空间自相关 (LISA)
-
-- **空间回归模型**：空间滞后模型 (SAR)、空间误差模型 (SEM)、空间杜宾模型 (SDM)、地理加权回归 (GWR)、空间面板数据模型
-
-### 6. 非参数与半参数方法
-
-放宽函数形式的线性或参数化假设，让数据本身驱动关系形态。
-
-- **核回归**
-- **局部回归**
-- **样条回归**
-- **广义可加模型 (GAM)**
-- **部分线性模型**
-- **非参数工具变量估计**
-
-### 7. 分布分析与分解方法
-
-分析因变量整个条件分布的特征，而非仅仅条件均值；对差异或变化进行分解。
-
-- **分位数回归**
-
-- **分解方法**：Oaxaca-Blinder分解、DiNardo-Fortin-Lemieux反事实分解、方差分解、ANOVA分解、Shapley值分解、时间序列分解（趋势-季节-随机）
-
-### 8. 现代计算与机器学习
+### 4. 机器学习方法 (8项)
 
 处理高维数据、复杂模式识别、预测以及为因果推断提供辅助工具。
 
-- **监督学习**：随机森林、梯度提升机 (GBM/XGBoost)、支持向量机 (SVM)、神经网络
+- **随机森林** - `ml_random_forest`
+- **梯度提升机** - `ml_gradient_boosting`
+- **支持向量机** - `ml_support_vector_machine`
+- **神经网络** - `ml_neural_network`
+- **K均值聚类** - `ml_kmeans_clustering`
+- **层次聚类** - `ml_hierarchical_clustering`
+- **双重机器学习** - `ml_double_machine_learning`
+- **因果森林** - `ml_causal_forest`
 
-- **无监督学习**：聚类分析（K-means、层次聚类）
+### 5. 微观计量模型 (7项)
 
-- **因果推断增强**：双重机器学习 (Double ML)、因果森林 (Causal Forest)
+针对因变量或数据结构的固有特性进行建模。
 
-### 9. 统计推断技术
+- **Logit模型** - `micro_logit`
+- **Probit模型** - `micro_probit`
+- **多项Logit** - `micro_multinomial_logit`
+- **泊松回归** - `micro_poisson`
+- **负二项回归** - `micro_negative_binomial`
+- **Tobit模型** - `micro_tobit`
+- **Heckman选择模型** - `micro_heckman`
 
-在理论分布难以推导或模型复杂时，进行可靠的区间估计与假设检验。
+### 6. 缺失数据处理 (2项)
 
-- **重采样方法**：自助法 (Bootstrap)、Pairs Bootstrap、Residual Bootstrap、Wild Bootstrap（异方差）、Block Bootstrap（时间序列/面板）、刀切法 (Jackknife)
+处理数据缺失问题，保证分析的完整性。
 
-- **模拟方法**：蒙特卡洛模拟、置换检验 (Permutation Test)
+- **简单插补** - `missing_data_simple_imputation`
+- **多重插补 (MICE)** - `missing_data_multiple_imputation`
 
-- **渐近方法**：Delta方法、聚类稳健推断
+### 7. 模型规范、诊断与稳健推断 (7项)
 
-### 10. 缺失数据与测量误差
+当基础模型的理想假设不成立时，修正模型或调整推断；对模型进行诊断和选择。
 
-处理数据不完整或变量测量不准确的问题。
+- **模型诊断检验** - `model_diagnostic_tests`
+- **广义最小二乘法 (GLS)** - `generalized_least_squares`
+- **加权最小二乘法 (WLS)** - `weighted_least_squares`
+- **稳健标准误回归** - `robust_errors_regression`
+- **模型选择准则** - `model_selection_criteria`
+- **正则化回归** - `regularized_regression`
+- **联立方程模型** - `simultaneous_equations_model`
 
-- **缺失数据处理**：列表删除法、均值插补、回归插补、多重插补 (Multiple Imputation - MICE/Amelia)、期望最大化算法 (EM)
+### 8. 非参数方法 (4项)
 
-- **测量误差**：工具变量法、SIMEX方法
+不依赖特定函数形式的灵活建模方法。
 
-## 🔧 完整工具列表 (30+项)
+- **核回归** - `nonparametric_kernel_regression`
+- **分位数回归** - `nonparametric_quantile_regression`
+- **样条回归** - `nonparametric_spline_regression`
+- **广义可加模型 (GAM)** - `nonparametric_gam_model`
 
-### 数据管理工具 (8项)
+### 9. 空间计量经济学 (6项)
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `data_cleaning` | 数据清洗 | data, handle_missing, handle_outliers | 清洗后数据、处理统计 |
-| `data_merge` | 数据合并 | left_data, right_data, on, how | 合并后数据、匹配统计 |
-| `data_append` | 数据追加 | data1, data2 | 纵向合并数据 |
-| `reshape_to_long` | 宽转长 | data, id_vars, value_vars | 长格式数据 |
-| `reshape_to_wide` | 长转宽 | data, id_var, variable_col, value_col | 宽格式数据 |
-| `variable_generation` | 生成变量 | data, expression | 新变量数据 |
-| `variable_dropping` | 删除变量 | data, drop_vars | 删除后数据 |
-| `variable_keeping` | 保留变量 | data, keep_vars | 保留后数据 |
+分析具有空间依赖性的数据。
 
-### 统计分析工具 (4项)
+- **空间权重矩阵** - `spatial_weights_matrix`
+- **Moran's I检验** - `spatial_morans_i_test`
+- **Geary's C检验** - `spatial_gearys_c_test`
+- **局部Moran's I (LISA)** - `spatial_local_moran_lisa`
+- **空间回归模型** - `spatial_regression_model`
+- **地理加权回归 (GWR)** - `spatial_gwr_model`
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `descriptive_statistics` | 描述性统计 | data | 均值、标准差、偏度、峰度、相关矩阵 |
-| `hypothesis_testing` | 假设检验 | data1, data2, test_type | 统计量、p值、显著性判断 |
-| `correlation_analysis` | 相关性分析 | data, method | 相关系数矩阵 |
-| `distribution_analysis` | 分布分析 | data, test_type | 分布检验结果 |
+### 10. 统计推断 (2项)
 
-### 基础计量工具 (4项)
+基于重采样的统计推断方法。
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `ols_regression` | OLS回归 | y_data, x_data | R²、系数、t统计量、p值、置信区间 |
-| `lasso_regression_analysis` | Lasso回归 | y_data, x_data, alpha | R²、稀疏系数、特征选择 |
-| `ridge_regression_analysis` | Ridge回归 | y_data, x_data, alpha | R²、正则化系数 |
-| `robust_regression` | 稳健标准误 | y_data, x_data, robust_type | 稳健标准误、检验统计量 |
+- **Bootstrap方法** - `inference_bootstrap`
+- **置换检验** - `inference_permutation_test`
 
-### 面板数据工具 (5项)
+### 11. 时间序列与面板数据 (11项)
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `panel_fixed_effects` | 固定效应模型 | y_data, x_data, entity_ids, time_periods | R²、系数、F统计量 |
-| `panel_random_effects` | 随机效应模型 | y_data, x_data, entity_ids, time_periods | R²、系数、随机效应方差 |
-| `panel_hausman_test` | Hausman检验 | y_data, x_data, entity_ids, time_periods | 检验统计量、模型选择建议 |
-| `panel_unit_root_test` | 面板单位根 | data, entity_ids, time_periods, test_type | 平稳性判断、临界值 |
-| `panel_diagnostics` | 面板诊断 | data, entity_ids, time_periods | 组内相关、异方差检验 |
+分析具有时间维度数据的动态依赖、预测和非平稳性。
 
-### 时间序列工具 (7项)
+- **ARIMA模型** - `time_series_arima_model`
+- **指数平滑法** - `time_series_exponential_smoothing`
+- **GARCH波动率模型** - `time_series_garch_model`
+- **单位根检验** - `time_series_unit_root_tests`
+- **VAR/SVAR模型** - `time_series_var_svar_model`
+- **协整分析** - `time_series_cointegration_analysis`
+- **动态面板模型** - `panel_data_dynamic_model`
+- **面板数据诊断** - `panel_data_diagnostics`
+- **面板VAR模型** - `panel_var_model`
+- **结构突变检验** - `structural_break_tests`
+- **时变参数模型** - `time_varying_parameter_models`
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `time_series_analysis` | 时间序列分析 | data | 平稳性检验、ACF/PACF、模型建议 |
-| `var_model_analysis` | VAR模型 | data, max_lags, ic | 最优阶数、系数、脉冲响应 |
-| `vecm_model_analysis` | VECM模型 | data, coint_rank, max_lags | 协整向量、误差修正项 |
-| `garch_model_analysis` | GARCH模型 | data, order, dist | 波动率持续性、条件方差 |
-| `state_space_model_analysis` | 状态空间模型 | data, state_dim, trend | 滤波状态、平滑状态估计 |
-| `variance_decomposition_analysis` | 方差分解 | data, periods, max_lags | 各变量贡献度分解 |
-| `time_series_forecasting` | 时间序列预测 | data, model_type, periods | 预测值、置信区间 |
+## 🔧 完整工具列表 (66项)
 
-### 离散选择工具 (6项)
+### 基础参数估计 (3项)
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `logit_regression` | Logit回归 | y_data, x_data | 伪R²、系数、OR值、p值 |
-| `probit_regression` | Probit回归 | y_data, x_data | 伪R²、系数、边际效应、p值 |
-| `multinomial_logit_regression` | 多项Logit | y_data, x_data | 伪R²、系数、相对风险比 |
-| `ordered_choice_regression` | 有序选择 | y_data, x_data | 伪R²、系数、切点估计 |
-| `tobit_regression` | Tobit模型 | y_data, x_data, censoring_point | 系数、边际效应、p值 |
-| `poisson_count_regression` | 泊松回归 | y_data, x_data | 伪R²、系数、发生率比 |
+| 工具                                | 功能         | 主要参数                      | 输出                              |
+| ----------------------------------- | ------------ | ----------------------------- | --------------------------------- |
+| `basic_parametric_estimation_ols` | OLS回归分析  | y_data, x_data, file_path     | R²、系数、t统计量、p值、置信区间 |
+| `basic_parametric_estimation_mle` | 最大似然估计 | data, file_path, distribution | 参数估计、标准误、置信区间        |
+| `basic_parametric_estimation_gmm` | 广义矩估计   | y_data, x_data, instruments   | GMM系数、J统计量、p值             |
 
-### 高级计量工具 (5项)
+### 因果推断 (13项)
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `propensity_score_matching` | PSM | treatment, covariates, outcome | 处理效应、匹配统计 |
-| `difference_in_differences` | DID | treatment, time_period, outcome | 处理效应、时间效应 |
-| `regression_discontinuity_analysis` | RDD | running_var, outcome, cutoff | 局部平均处理效应 |
-| `quantile_regression_analysis` | 分位数回归 | y_data, x_data, quantiles | 分位数系数、置信区间 |
-| `survival_analysis_cox` | 生存分析 | time, event, covariates | 风险比、系数、p值 |
+| 工具                                 | 功能         | 主要参数                               | 输出                    |
+| ------------------------------------ | ------------ | -------------------------------------- | ----------------------- |
+| `causal_difference_in_differences` | 双重差分法   | treatment, time_period, outcome        | 处理效应、时间效应      |
+| `causal_instrumental_variables`    | 工具变量法   | y_data, x_data, instruments            | 2SLS系数、弱工具检验    |
+| `causal_propensity_score_matching` | 倾向得分匹配 | treatment, outcome, covariates         | 处理效应、匹配统计      |
+| `causal_fixed_effects`             | 固定效应模型 | y_data, x_data, entity_ids             | R²、系数、F统计量      |
+| `causal_random_effects`            | 随机效应模型 | y_data, x_data, entity_ids             | R²、系数、随机效应方差 |
+| `causal_regression_discontinuity`  | 回归断点设计 | running_variable, outcome, cutoff      | 局部平均处理效应        |
+| `causal_synthetic_control`         | 合成控制法   | outcome, treatment_period, donor_units | 合成权重、处理效应      |
+| `causal_event_study`               | 事件研究法   | outcome, treatment, event_time         | 动态处理效应            |
+| `causal_triple_difference`         | 三重差分法   | outcome, treatment_group, cohort_group | 三重差分效应            |
+| `causal_mediation_analysis`        | 中介效应分析 | outcome, treatment, mediator           | 直接效应、间接效应      |
+| `causal_moderation_analysis`       | 调节效应分析 | outcome, predictor, moderator          | 交互效应、条件效应      |
+| `causal_control_function`          | 控制函数法   | y_data, x_data, z_data                 | 控制函数估计            |
+| `causal_first_difference`          | 一阶差分模型 | y_data, x_data, entity_ids             | 差分系数、标准误        |
 
+### 机器学习 (8项)
 
-### 其他高级工具 (4项)
+| 工具                           | 功能         | 主要参数                           | 输出                       |
+| ------------------------------ | ------------ | ---------------------------------- | -------------------------- |
+| `ml_random_forest`           | 随机森林     | X_data, y_data, problem_type       | R²、特征重要性、预测精度  |
+| `ml_gradient_boosting`       | 梯度提升机   | X_data, y_data, algorithm          | R²、特征重要性、预测精度  |
+| `ml_support_vector_machine`  | 支持向量机   | X_data, y_data, kernel             | R²、支持向量、预测精度    |
+| `ml_neural_network`          | 神经网络     | X_data, y_data, hidden_layer_sizes | R²、网络权重、预测精度    |
+| `ml_kmeans_clustering`       | K均值聚类    | X_data, n_clusters                 | 聚类中心、簇标签、轮廓系数 |
+| `ml_hierarchical_clustering` | 层次聚类     | X_data, n_clusters, linkage        | 聚类树、簇标签             |
+| `ml_double_machine_learning` | 双重机器学习 | X_data, y_data, d_data             | 处理效应、置信区间         |
+| `ml_causal_forest`           | 因果森林     | X_data, y_data, w_data             | 异质性处理效应、特征重要性 |
 
-| 工具 | 功能 | 主要参数 | 输出 |
-|------|------|----------|------|
-| `iv_regression_2sls` | 工具变量法 | y_data, x_data, instruments | 2SLS系数、弱工具检验 |
-| `gmm_regression` | 广义矩估计 | y_data, x_data, instruments | GMM系数、过度识别检验 |
-| `wls_regression` | 加权最小二乘 | y_data, x_data, weights | WLS系数、权重统计 |
-| `bootstrap_analysis` | Bootstrap推断 | data, statistic_func, n_bootstrap | 置信区间、统计量分布 |
+### 微观计量 (7项)
 
-> **注意**: 所有工具均支持CSV/JSON/TXT格式输入，可通过`file_path`、`file_content`或直接数据参数调用。
+| 工具                        | 功能            | 主要参数                      | 输出                       |
+| --------------------------- | --------------- | ----------------------------- | -------------------------- |
+| `micro_logit`             | Logit回归       | X_data, y_data                | 伪R²、系数、OR值、p值     |
+| `micro_probit`            | Probit回归      | X_data, y_data                | 伪R²、系数、边际效应、p值 |
+| `micro_multinomial_logit` | 多项Logit       | X_data, y_data                | 伪R²、系数、相对风险比    |
+| `micro_poisson`           | 泊松回归        | X_data, y_data                | 伪R²、系数、发生率比      |
+| `micro_negative_binomial` | 负二项回归      | X_data, y_data, distr         | 伪R²、系数、过度离散参数  |
+| `micro_tobit`             | Tobit模型       | X_data, y_data, bounds        | 系数、边际效应、p值        |
+| `micro_heckman`           | Heckman选择模型 | X_select_data, Z_data, s_data | 选择方程、结果方程系数     |
+
+### 模型规范与诊断 (7项)
+
+| 工具                             | 功能         | 主要参数                    | 输出                            |
+| -------------------------------- | ------------ | --------------------------- | ------------------------------- |
+| `model_diagnostic_tests`       | 模型诊断检验 | y_data, x_data              | 异方差、自相关、正态性、VIF检验 |
+| `generalized_least_squares`    | GLS回归      | y_data, x_data, sigma       | GLS系数、标准误、置信区间       |
+| `weighted_least_squares`       | WLS回归      | y_data, x_data, weights     | WLS系数、权重统计               |
+| `robust_errors_regression`     | 稳健标准误   | y_data, x_data, cov_type    | 稳健标准误、检验统计量          |
+| `model_selection_criteria`     | 模型选择     | y_data, x_data, cv_folds    | AIC、BIC、HQIC、交叉验证        |
+| `regularized_regression`       | 正则化回归   | y_data, x_data, method      | 正则化系数、特征选择            |
+| `simultaneous_equations_model` | 联立方程模型 | y_data, x_data, instruments | 2SLS系数、方程系统              |
+
+### 时间序列与面板数据 (11项)
+
+| 工具                                   | 功能         | 主要参数                   | 输出                       |
+| -------------------------------------- | ------------ | -------------------------- | -------------------------- |
+| `time_series_arima_model`            | ARIMA模型    | data, order                | 模型系数、预测值、置信区间 |
+| `time_series_exponential_smoothing`  | 指数平滑     | data, trend, seasonal      | 平滑参数、预测值           |
+| `time_series_garch_model`            | GARCH模型    | data, order                | 波动率参数、条件方差       |
+| `time_series_unit_root_tests`        | 单位根检验   | data, test_type            | 检验统计量、平稳性判断     |
+| `time_series_var_svar_model`         | VAR/SVAR模型 | data, model_type, lags     | 系数矩阵、脉冲响应         |
+| `time_series_cointegration_analysis` | 协整分析     | data, analysis_type        | 协整向量、秩检验           |
+| `panel_data_dynamic_model`           | 动态面板模型 | y_data, x_data, entity_ids | GMM系数、标准误            |
+| `panel_data_diagnostics`             | 面板诊断     | test_type, residuals       | Hausman检验、F检验、LM检验 |
+| `panel_var_model`                    | 面板VAR模型  | data, entity_ids, lags     | 面板VAR系数、脉冲响应      |
+| `structural_break_tests`             | 结构突变检验 | data, test_type            | 断点检测、检验统计量       |
+| `time_varying_parameter_models`      | 时变参数模型 | y_data, x_data, model_type | 参数轨迹、机制转换         |
+
+> **注意**: 所有工具均支持CSV/JSON/TXT/Excel格式输入，可通过 `file_path`、`file_content`或直接数据参数调用。**输出支持JSON/Markdown/TXT多种格式**。
 
 ## 📁 文件输入支持
 
@@ -301,7 +280,7 @@ MCP设置中添加：
 - **表头**: 自动识别（第一行非数值为表头）
 - **特点**: 最通用，易于编辑和查看
 
-```csv
+```
 GDP,CPI,失业率
 3.2,2.1,4.5
 2.8,2.3,4.2
@@ -322,7 +301,23 @@ GDP,CPI,失业率
 }
 ```
 
-#### 3. TXT文件（新增✨）
+#### 3. Excel文件
+
+- **格式**: .xlsx 或 .xls
+- **表头**: 第一行作为变量名
+- **工作表**: 自动读取第一个工作表，或指定sheet名称
+- **特点**: 支持复杂数据结构，保留格式
+
+```
+# Excel文件示例结构
+# Sheet1:
+#   A列: GDP, B列: CPI, C列: 失业率
+#   第1行: 3.2, 2.1, 4.5
+#   第2行: 2.8, 2.3, 4.2
+#   第3行: 3.5, 1.9, 4.0
+```
+
+#### 4. TXT文件
 
 - **单列数值**: 每行一个数值
 
@@ -354,7 +349,7 @@ CPI: 2.1 2.3 1.9 2.4
 
 #### 方式1：直接数据输入（程序化调用）
 
-```json
+```
 {
   "data": {
     "GDP增长率": [3.2, 2.8, 3.5, 2.9],
@@ -363,9 +358,9 @@ CPI: 2.1 2.3 1.9 2.4
 }
 ```
 
-#### 方式2：文件内容输入（字符串）
+ 方式2：文件内容输入（字符串）
 
-```json
+```
 {
   "file_content": "GDP,CPI\n3.2,2.1\n2.8,2.3\n3.5,1.9",
   "file_format": "csv"
@@ -374,18 +369,34 @@ CPI: 2.1 2.3 1.9 2.4
 
 #### 方式3：文件路径输入（推荐✨）
 
-```json
+```
 {
   "file_path": "./data/economic_data.csv"
 }
 ```
 
-或使用TXT文件：
+或使用Excel文件：
 
-```json
+```
 {
-  "file_path": "./data/timeseries.txt",
-  "file_format": "txt"
+  "file_path": "./data/panel_data.xlsx"
+}
+```
+
+### 输出格式支持
+
+所有工具支持多种输出格式，通过 `output_format` 参数指定：
+
+- **json** (默认) - 结构化JSON格式，便于程序处理
+- **markdown** - Markdown表格格式，适合文档展示
+- **html** - HTML表格格式，适合网页展示
+- **latex** - LaTeX表格格式，适合学术论文
+- **text** - 纯文本格式，简洁易读
+
+```
+{
+  "file_path": "./data/economic_data.csv",
+  "output_format": "json"
 }
 ```
 
@@ -393,8 +404,8 @@ CPI: 2.1 2.3 1.9 2.4
 
 系统会智能检测文件格式：
 
-1. 文件扩展名（.csv/.json/.txt）
-2. 文件内容特征（逗号、JSON结构、纯数值）
+1. 文件扩展名（.csv/.json/.txt/.xlsx/.xls）
+2. 文件内容特征（逗号、JSON结构、纯数值、Excel二进制）
 3. 建议使用 `"file_format": "auto"` 让系统自动识别
 
 ## ⚙️ 安装配置
@@ -407,17 +418,17 @@ CPI: 2.1 2.3 1.9 2.4
 
 ### 方式1：uvx安装（推荐）
 
-```bash
+```
 # 直接运行最新版本
 uvx aigroup-econ-mcp
 
 # 指定版本
-uvx aigroup-econ-mcp@1.3.3
+uvx aigroup-econ-mcp@1.4.3
 ```
 
 ### 方式2：pip安装
 
-```bash
+```
 # 安装包
 pip install aigroup-econ-mcp
 
@@ -427,7 +438,7 @@ aigroup-econ-mcp
 
 ### macOS 特定说明
 
-```bash
+```
 # 如果遇到权限问题，使用用户安装
 pip install --user aigroup-econ-mcp
 
@@ -442,108 +453,71 @@ pip install aigroup-econ-mcp
 - **核心依赖**: pandas >= 1.5.0, numpy >= 1.21.0, scipy >= 1.7.0
 - **统计分析**: statsmodels >= 0.13.0
 - **面板数据**: linearmodels >= 7.0
-- **机器学习**: scikit-learn >= 1.0.0
+- **机器学习**: scikit-learn >= 1.0.0, xgboost >= 1.7.0, joblib >= 1.2.0
 - **时间序列**: arch >= 6.0.0
+- **空间计量**: libpysal >= 4.7.0, esda >= 2.4.0, spreg >= 1.4.0
+- **可视化**: matplotlib >= 3.5.0
 - **轻量级**: 无需torch或其他重型框架
 
 ## 📚 使用示例
 
-### 示例1：描述性统计（CSV文件）
+### 示例1：OLS回归分析
 
-```python
-# 方式A：使用文件路径
-result = await descriptive_statistics(
+```
+# 使用文件路径
+result = await basic_parametric_estimation_ols(
     file_path="./data/economic_indicators.csv"
 )
 
-# 方式B：使用文件内容
-result = await descriptive_statistics(
-    file_content="""GDP,CPI,失业率
-3.2,2.1,4.5
-2.8,2.3,4.2
-3.5,1.9,4.0""",
-    file_format="csv"
-)
-```
-
-### 示例2：回归分析（TXT文件）
-
-```python
-# TXT文件格式（空格分隔）
-result = await ols_regression(
-    file_content="""广告支出 价格 销售额
-100 50 1200
-120 48 1350
-110 52 1180""",
-    file_format="txt"
-)
-
-# 系统会自动识别：
-# - 因变量：销售额（最后一列）
-# - 自变量：广告支出、价格（其他列）
-```
-
-### 示例3：时间序列分析
-
-```python
-# TXT单列格式
-result = await time_series_analysis(
-    file_content="""100.5
-102.3
-101.8
-103.5
-104.2""",
-    file_format="txt"
-)
-
-# 输出包括：
-# - 平稳性检验结果
-# - ACF/PACF分析
-# - 模型建议（ARIMA/AR/MA）
-```
-
-### 示例4：面板数据（CSV文件）
-
-```python
-# CSV面板数据格式
-result = await panel_fixed_effects(
-    file_path="./panel_data.csv"
-)
-
-# CSV格式要求：
-# company_id, year, revenue, employees, investment
-# 1, 2020, 1000, 50, 100
-# 1, 2021, 1100, 52, 110
-# ...
-
-# 系统会自动识别：
-# - entity_ids: company_id列
-# - time_periods: year列
-# - 数据变量：其他列
-```
-
-### 示例5：机器学习（带完整参数）
-
-```python
-# 随机森林回归
-result = await random_forest_regression_analysis(
+# 使用直接数据输入
+result = await basic_parametric_estimation_ols(
     y_data=[12, 13, 15, 18, 20],
-    x_data=[
-        [100, 50, 3],
-        [120, 48, 3],
-        [110, 52, 4],
-        [130, 45, 3],
-        [125, 47, 4]
-    ],
-    feature_names=["广告支出", "价格", "竞争对手数"],
-    n_estimators=100,
-    max_depth=5
+    x_data=[[100, 50], [120, 48], [110, 52], [130, 45], [125, 47]],
+    feature_names=["广告支出", "价格"]
 )
+```
 
-# 输出包括：
-# - R² 得分
-# - 特征重要性排名
-# - 预测精度指标
+### 示例2：因果推断 - 双重差分法
+
+```
+result = await causal_difference_in_differences(
+    treatment=[0, 0, 1, 1],
+    time_period=[0, 1, 0, 1],
+    outcome=[10, 12, 11, 15],
+    output_format="json"
+)
+```
+
+### 示例3：机器学习 - 随机森林
+
+```
+result = await ml_random_forest(
+    X_data=[[100, 50, 3], [120, 48, 3], [110, 52, 4], [130, 45, 3]],
+    y_data=[12, 13, 15, 18],
+    feature_names=["广告支出", "价格", "竞争对手数"],
+    problem_type="regression",
+    n_estimators=100
+)
+```
+
+### 示例4：时间序列 - ARIMA模型
+
+```
+result = await time_series_arima_model(
+    data=[100.5, 102.3, 101.8, 103.5, 104.2],
+    order=(1, 1, 1),
+    forecast_steps=5
+)
+```
+
+### 示例5：微观计量 - Logit回归
+
+```
+result = await micro_logit(
+    X_data=[[1.5, 2.5], [1.7, 2.7], [1.9, 2.9], [2.1, 3.1]],
+    y_data=[0, 0, 1, 1],
+    feature_names=["收入", "教育年限"]
+)
 ```
 
 ## 🔍 故障排除
@@ -552,8 +526,7 @@ result = await random_forest_regression_analysis(
 
 #### Q: uvx安装卡住
 
-```bash
-
+```
 # 清除缓存重试
 uvx --no-cache aigroup-econ-mcp
 ```
@@ -584,36 +557,64 @@ uvx --no-cache aigroup-econ-mcp
 
 ## 🏗️ 项目架构
 
+### 核心模块结构
+
+```
+aigroup-econ-mcp/
+├── econometrics/              # 核心计量经济学算法
+│   ├── basic_parametric_estimation/    # 基础参数估计（3个模型）
+│   ├── causal_inference/               # 因果推断（13个方法）
+│   ├── advanced_methods/               # 机器学习（8个模型）
+│   ├── specific_data_modeling/         # 微观+时序（18个模型）
+│   └── model_specification_diagnostics_robust_inference/  # 模型规范（7个工具）
+├── tools/                     # MCP工具适配器
+│   ├── mcp_tool_groups/              # 工具组定义
+│   │   ├── basic_parametric_tools.py         # 基础参数估计工具
+│   │   ├── causal_inference_tools.py         # 因果推断工具
+│   │   ├── machine_learning_tools.py         # 机器学习工具
+│   │   ├── microecon_tools.py                # 微观计量工具
+│   │   ├── model_specification_tools.py      # 模型规范工具
+│   │   └── time_series_tools.py              # 时间序列工具
+│   ├── data_loader.py                # 数据加载器
+│   └── output_formatter.py           # 输出格式化
+└── server.py                  # MCP服务器入口
+```
 
 ### 设计特点
 
-- **🎯 组件化架构** - 模块化设计，职责单一，易于维护和扩展
-- **🔄 统一接口** - 所有工具支持CSV/JSON/TXT三种格式输入
+- **🎯 十一大工具组** - 基础参数估计(3) + 因果推断(13) + 分解分析(3) + 机器学习(8) + 微观计量(7) + 缺失数据处理(2) + 模型规范诊断(7) + 非参数方法(4) + 空间计量(6) + 统计推断(2) + 时序面板(11) = 66项工具
+- **🔄 统一接口** - 所有工具支持CSV/JSON/TXT/Excel四种格式输入
+- **📊 多格式输出** - 支持JSON/Markdown/TXT三种输出格式
 - **⚡ 异步处理** - 基于asyncio的异步设计，支持并发请求
 - **🛡️ 错误处理** - 统一的错误处理和详细的错误信息
 - **📝 完整文档** - 每个工具都有详细的参数说明和使用示例
 - **🧪 全面测试** - 单元测试和集成测试覆盖
 
-### 新增特性（v1.4.0）
+### 新增特性（v1.4.3）
 
-- 🎯 **100% Stata功能覆盖** - 完整实现50项Stata核心功能
-- ✨ **离散选择模型** - Logit、Probit、多项Logit、有序选择、Tobit、泊松回归
-- 🔬 **高级计量方法** - PSM、DID、RDD、分位数回归、生存分析
-- 📊 **数据管理工具** - 清洗、合并、追加、宽转长、长转宽、变量操作
-- ⚙️ **高级回归方法** - IV/2SLS、GMM、WLS、Bootstrap、稳健标准误
-- ✨ **TXT格式支持** - 支持单列、多列、键值对三种TXT格式
-- 📝 **完善参数描述** - 所有50个工具的MCP参数都有详细说明
-- 🔍 **智能格式检测** - 自动识别CSV/JSON/TXT格式
-- 📂 **文件路径支持** - 支持直接传入文件路径（.txt/.csv/.json）
+- 🎯 **66项专业工具** - 完整覆盖计量经济学核心方法
+- ✨ **11大工具组** - 基础参数估计(3) + 因果推断(13) + 分解分析(3) + 机器学习(8) + 微观计量(7) + 缺失数据处理(2) + 模型规范诊断(7) + 非参数方法(4) + 空间计量(6) + 统计推断(2) + 时序面板(11)
+- 🔬 **13种因果方法** - DID、IV、PSM、RDD、合成控制等完整因果推断工具链
+- 📊 **8种机器学习** - 随机森林、梯度提升、神经网络、聚类、因果森林等
+- ⚙️ **7种微观模型** - Logit、Probit、Tobit、Heckman等离散选择和受限因变量模型
+- 📈 **11种时序模型** - ARIMA、GARCH、VAR、协整、动态面板等时间序列工具
+- ✨ **多格式输入** - 支持CSV/JSON/TXT/Excel(.xlsx/.xls)四种输入格式
+- 📊 **多格式输出** - 支持JSON/Markdown/TXT三种输出格式
+- 📝 **完善参数描述** - 所有66个工具的MCP参数都有详细说明
+- 🔍 **智能格式检测** - 自动识别CSV/JSON/TXT/Excel格式
+- 📂 **文件路径支持** - 支持直接传入文件路径（.txt/.csv/.json/.xlsx/.xls）
 
 ## 🤝 贡献指南
 
 ### 开发环境设置
 
-```bash
+```
 # 克隆项目
 git clone https://github.com/jackdark425/aigroup-econ-mcp
 cd aigroup-econ-mcp
+
+# 安装所有依赖（包括新添加的空间计量、生存分析等包）
+uv sync
 
 # 安装开发依赖
 uv add --dev pytest pytest-asyncio black isort mypy ruff
@@ -653,7 +654,7 @@ MIT License - 查看 [LICENSE](LICENSE) 文件了解详情
 - **pandas** - 高效的数据处理库
 - **scikit-learn** - 全面的机器学习库
 - **linearmodels** - 面板数据分析专用库
-- **计量经济学社区** - 提供Stata功能参考和实现指导
+- **计量经济学社区** - 提供方法参考和实现指导
 - **开源社区** - 所有依赖库的开发者们
 
 ## 📞 支持
@@ -663,10 +664,24 @@ MIT License - 查看 [LICENSE](LICENSE) 文件了解详情
 - 📚 **文档**: 查看[详细文档](https://github.com/jackdark425/aigroup-econ-mcp/tree/main/docs)
 - 🌟 **Star项目**: 如果觉得有用，请给个⭐️
 
-## 📈 
+## 📈 工具统计
+
+**总计 66 项专业工具**:
+
+- 基础参数估计: 3项
+- 因果推断: 13项
+- 分解分析: 3项
+- 机器学习: 8项
+- 微观计量: 7项
+- 缺失数据处理: 2项
+- 模型规范诊断: 7项
+- 非参数方法: 4项
+- 空间计量: 6项
+- 统计推断: 2项
+- 时间序列与面板数据: 11项
 
 ---
 
 **立即开始**: `uvx aigroup-econ-mcp` 🚀
 
-让AI大模型成为你的专业计量经济学分析助手！50项Stata功能，一站式解决方案！
+让AI大模型成为你的专业计量经济学分析助手！66项专业工具，一站式解决方案！

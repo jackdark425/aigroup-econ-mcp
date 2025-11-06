@@ -26,6 +26,13 @@ dependencies = [
     "PyYAML>=6.0",
     "arch>=6.0.0",
     "openpyxl>=3.0.0",
+    "lifelines>=0.27.0",
+    "libpysal>=4.7.0",
+    "esda>=2.4.0",
+    "spreg>=1.4.0",
+    "joblib>=1.2.0",
+    "xgboost>=1.7.0",
+    "matplotlib>=3.5.0",
 ]
 keywords = ["mcp", "economics", "statistics", "regression", "data-analysis", "econometrics", "time-series", "panel-data"]
 classifiers = [
