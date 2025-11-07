@@ -1,6 +1,6 @@
 # aigroup-econ-mcp - 专业计量经济学MCP工具
 
-🎯 **66项专业计量经济学分析工具** - 提供完整计量功能覆盖，支持CSV/JSON/TXT/Excel多种数据格式
+🎯 **全方位计量经济学分析平台** - 集成66项专业工具，涵盖基础参数估计、因果推断、机器学习、微观计量、时间序列与面板数据分析等核心领域，支持CSV/JSON/TXT/Excel多种数据格式输入和JSON/Markdown/TXT多种输出格式，为经济学研究和数据分析提供一站式解决方案
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green.svg)
