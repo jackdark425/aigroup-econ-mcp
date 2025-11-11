@@ -28,7 +28,18 @@
 ```bash
 # 使用uvx快速启动（无需安装）
 uvx aigroup-econ-mcp
+
+# ⚠️ 如果遇到版本更新后仍运行旧版本（uvx缓存问题），请使用：
+uvx --no-cache aigroup-econ-mcp
+
+# 或者清除缓存后重新运行（Windows PowerShell）：
+rm -r -force $env:LOCALAPPDATA\uv\cache\wheels; uvx aigroup-econ-mcp
+
+# macOS/Linux清除缓存：
+rm -rf ~/.cache/uv/wheels && uvx aigroup-econ-mcp
 ```
+
+**💡 提示**: 如果遇到"总是运行旧版本"的问题，请查看[故障排除](#-故障排除)中的"uvx缓存问题"解决方案。
 
 ### Roo-Code、通义灵码、Claude code配置
 
@@ -524,9 +535,74 @@ result = await micro_logit(
 
 ### 常见问题
 
+#### Q: uvx 总是使用旧版本（缓存问题）⭐
+
+**问题**: uvx 会缓存已下载的包，导致即使PyPI上有新版本，仍然运行旧版本。
+
+**解决方案**（按推荐顺序）：
+
+**方法1: 强制清除缓存并重新安装（推荐）**
+```bash
+# Windows PowerShell
+rm -r -force $env:LOCALAPPDATA\uv\cache\wheels
+uvx aigroup-econ-mcp
+
+# Windows CMD
+rmdir /s /q %LOCALAPPDATA%\uv\cache\wheels
+uvx aigroup-econ-mcp
+
+# macOS/Linux
+rm -rf ~/.cache/uv/wheels
+uvx aigroup-econ-mcp
+```
+
+**方法2: 使用 --no-cache 参数**
+```bash
+uvx --no-cache aigroup-econ-mcp
+```
+
+**方法3: 指定具体版本号**
+```bash
+# 查看最新版本
+pip index versions aigroup-econ-mcp
+
+# 使用特定版本
+uvx aigroup-econ-mcp@2.0.4
+```
+
+**方法4: 清除整个 uv 缓存**
+```bash
+uv cache clean
+uvx aigroup-econ-mcp
+```
+
+**方法5: 使用自动清除脚本（最简单）**
+```bash
+# Windows - 双击运行
+clear_uvx_cache.bat
+
+# 或使用 Python 脚本（跨平台）
+python clear_uvx_cache.py
+
+# macOS/Linux - 添加执行权限后运行
+chmod +x clear_uvx_cache.sh
+./clear_uvx_cache.sh
+```
+
+**验证版本**：
+```bash
+# 查看当前运行的版本
+uvx aigroup-econ-mcp --version
+```
+
+**提示**：项目根目录提供了三个清除缓存脚本：
+- [`clear_uvx_cache.bat`](clear_uvx_cache.bat) - Windows 批处理脚本
+- [`clear_uvx_cache.sh`](clear_uvx_cache.sh) - macOS/Linux Shell 脚本
+- [`clear_uvx_cache.py`](clear_uvx_cache.py) - 跨平台 Python 脚本
+
 #### Q: uvx安装卡住
 
-```
+```bash
 # 清除缓存重试
 uvx --no-cache aigroup-econ-mcp
 ```
