@@ -5,12 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "aigroup_econ_mcp"
 version = "2.0.8"
-description = "专业计量经济学MCP工具 - 支持CSV/JSON/TXT/Excel格式，让大模型更智能地进行数据分析"
+description = "Econometrics MCP server with regression, causal inference, time series, panel data, and statistical analysis workflows."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "AIGroup", email = "jackdark425@gmail.com"}
+    { name = "AI Group", email = "jackdark425@gmail.com" }
 ]
+license = { text = "MIT" }
 dependencies = [
     "pandas>=1.5.0",
     "numpy>=1.21.0",
@@ -34,16 +35,24 @@ dependencies = [
     "joblib>=1.2.0",
     "xgboost>=1.7.0",
     "matplotlib>=3.5.0",
-    "twine>=6.2.0",
+    "twine>=6.2.0"
 ]
-keywords = ["mcp", "economics", "statistics", "regression", "data-analysis", "econometrics", "time-series", "panel-data"]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "econometrics",
+    "statistics",
+    "regression",
+    "causal-inference",
+    "time-series",
+    "panel-data",
+    "data-analysis"
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -55,16 +64,15 @@ classifiers = [
 aigroup-econ-mcp = "cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/jackdark425/aigroup-econ-mcp"
+Homepage = "https://github.com/jackdark425/aigroup-econ-mcp#readme"
 Repository = "https://github.com/jackdark425/aigroup-econ-mcp.git"
-Issues = "https://github.com/ajackdark425/aigroup-econ-mcp/issues"
+Issues = "https://github.com/jackdark425/aigroup-econ-mcp/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/.",
     "/README.md",
     "/LICENSE",
     "/cli.py",
@@ -74,6 +82,7 @@ include = [
     "/tools/**/*",
     "/resources/**/*",
     "/prompts/**/*",
+    "/pyproject.toml"
 ]
 
 [tool.uv]
