@@ -62,9 +62,11 @@ def arima_model(
             conf_int_lower = None
             conf_int_upper = None
 
-        # 进行预测
-        forecast_result = fitted_model.forecast(steps=forecast_steps)
-        forecast = forecast_result.tolist()
+        # 进行预测 —— statsmodels raises "end must be after start" for steps<=0
+        if forecast_steps > 0:
+            forecast = fitted_model.forecast(steps=forecast_steps).tolist()
+        else:
+            forecast = []
 
         # 获取模型统计信息
         aic = float(fitted_model.aic) if hasattr(fitted_model, "aic") else None

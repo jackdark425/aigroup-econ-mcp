@@ -164,9 +164,13 @@ def regularized_regression(
     elif not feature_names:
         feature_names = []
 
+    # ``scaler_y.mean_`` is a 1-element array when y was reshaped to (-1, 1)
+    # for StandardScaler, so ``float(intercept)`` raises. Squeeze to scalar.
+    intercept_scalar = float(np.asarray(intercept).flatten()[0])
+
     return RegularizationResult(
         coefficients=beta.tolist(),
-        intercept=float(intercept),
+        intercept=intercept_scalar,
         r_squared=float(r_squared),
         adj_r_squared=float(adj_r_squared),
         n_obs=n,

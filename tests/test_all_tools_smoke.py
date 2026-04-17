@@ -70,6 +70,16 @@ def _coords(n: int = 8) -> list[list[float]]:
     return [[float(i % 3), float(i // 3)] for i in range(n)]
 
 
+def _chain_neighbors(n: int) -> dict[int, list[int]]:
+    """Linear chain 0—1—…—(n-1): endpoints have 1 neighbour, interior have 2."""
+    return {i: ([i - 1] if i > 0 else []) + ([i + 1] if i < n - 1 else []) for i in range(n)}
+
+
+def _chain_weights(n: int) -> dict[int, list[float]]:
+    """Equal-weight companion to ``_chain_neighbors``."""
+    return {i: [1.0 / len(v)] * len(v) if v else [] for i, v in _chain_neighbors(n).items()}
+
+
 # --- per-tool fixture -------------------------------------------------------
 
 
@@ -169,7 +179,7 @@ def _fixtures() -> dict[str, dict[str, Any]]:
         },
         "time_series_cointegration_analysis": {
             "data": _multi_series(20, 2),
-            "analysis_type": "engle_granger",
+            "analysis_type": "engle-granger",
         },
         "structural_break_tests": {"data": _series(40), "test_type": "chow", "break_point": 20},
         "time_varying_parameter_models": {
@@ -271,63 +281,29 @@ def _fixtures() -> dict[str, dict[str, Any]]:
             "x_data": [[float(i), float(i * 2)] for i in range(1, 41)],
         },
         # --- spatial --------------------------------------------------------
+        # Spatial tools take neighbors/weights as dicts keyed by node index.
+        # Chain graph 0–7 with equal within-edge weights.
         "spatial_weights_matrix": {"coordinates": _coords(8), "weight_type": "knn", "k": 2},
         "spatial_morans_i_test": {
             "values": [float(i) for i in range(8)],
-            "neighbors": [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6]],
-            "weights": [
-                [1.0],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [1.0],
-            ],
+            "neighbors": _chain_neighbors(8),
+            "weights": _chain_weights(8),
         },
         "spatial_gearys_c_test": {
             "values": [float(i) for i in range(8)],
-            "neighbors": [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6]],
-            "weights": [
-                [1.0],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [1.0],
-            ],
+            "neighbors": _chain_neighbors(8),
+            "weights": _chain_weights(8),
         },
         "spatial_local_moran_lisa": {
             "values": [float(i) for i in range(8)],
-            "neighbors": [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6]],
-            "weights": [
-                [1.0],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [1.0],
-            ],
+            "neighbors": _chain_neighbors(8),
+            "weights": _chain_weights(8),
         },
         "spatial_regression_model": {
             "y_data": [float(i) for i in range(8)],
             "x_data": [[float(i)] for i in range(8)],
-            "neighbors": [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6]],
-            "weights": [
-                [1.0],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [0.5, 0.5],
-                [1.0],
-            ],
+            "neighbors": _chain_neighbors(8),
+            "weights": _chain_weights(8),
             "model_type": "sar",
         },
         "spatial_gwr_model": {
