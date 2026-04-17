@@ -92,11 +92,10 @@ def random_forest_adapter(
     """Random Forest analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("target"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("target"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None:
         raise ValueError("X_data and y_data must be provided or loaded from file")
@@ -153,11 +152,10 @@ def gradient_boosting_adapter(
     """Gradient Boosting analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("target"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("target"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None:
         raise ValueError("X_data and y_data must be provided")
@@ -218,11 +216,10 @@ def svm_adapter(
     """SVM analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("target"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("target"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None:
         raise ValueError("X_data and y_data must be provided")
@@ -286,11 +283,10 @@ def neural_network_adapter(
     """Neural Network analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("target"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("target"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None:
         raise ValueError("X_data and y_data must be provided")
@@ -362,10 +358,9 @@ def kmeans_clustering_adapter(
     """K-Means Clustering analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None:
         raise ValueError("X_data must be provided")
@@ -419,10 +414,9 @@ def hierarchical_clustering_adapter(
     """Hierarchical Clustering analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None:
         raise ValueError("X_data must be provided")
@@ -462,12 +456,11 @@ def double_ml_adapter(
     """Double Machine Learning analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("outcome"))
-            d_data = data.get("d", data.get("treatment"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("outcome"))
+        d_data = data.get("d", data.get("treatment"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None or d_data is None:
         raise ValueError("X_data, y_data, and d_data must be provided")
@@ -518,12 +511,11 @@ def causal_forest_adapter(
     """Causal Forest analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        if isinstance(data, dict):
-            X_data = data.get("X", data.get("features"))
-            y_data = data.get("y", data.get("outcome"))
-            w_data = data.get("w", data.get("treatment"))
-            if feature_names is None:
-                feature_names = data.get("feature_names")
+        X_data = data.get("X", data.get("features"))
+        y_data = data.get("y", data.get("outcome"))
+        w_data = data.get("w", data.get("treatment"))
+        if feature_names is None:
+            feature_names = data.get("feature_names")
 
     if X_data is None or y_data is None or w_data is None:
         raise ValueError("X_data, y_data, and w_data must be provided")

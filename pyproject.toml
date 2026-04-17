@@ -148,6 +148,9 @@ follow_imports = "silent"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = [
+    "slow: subprocess or network-heavy tests (deselect with '-m \"not slow\"')",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]

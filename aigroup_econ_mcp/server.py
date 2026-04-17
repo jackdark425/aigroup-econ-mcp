@@ -29,7 +29,11 @@ def build_server() -> FastMCP:
 
     @mcp.resource("guide://econometrics")
     def econometrics_guide() -> str:
-        return _load_guide()
+        return _render_guide()
+
+    @mcp.resource("guide://data-formats")
+    def data_formats_guide() -> str:
+        return _load_static_guide("MCP_TOOLS_DATA_FORMAT_GUIDE.md")
 
     groups = REGISTRY.groups()
     log.info(
@@ -41,11 +45,57 @@ def build_server() -> FastMCP:
     return mcp
 
 
-def _load_guide() -> str:
-    guide_path = Path(__file__).resolve().parent.parent / "resources" / "MCP_MASTER_GUIDE.md"
-    if guide_path.exists():
-        return guide_path.read_text(encoding="utf-8")
-    return "Guide not available. See the project README for tool documentation."
+def _render_guide() -> str:
+    """Generate the tool catalogue from the live REGISTRY.
+
+    Avoids shipping a stale static file — every rebuild reflects the current
+    set of registered tools. Input/output format notes are static because
+    they don't depend on tool membership.
+    """
+    lines = [
+        "# aigroup-econ-mcp — Tool Catalogue",
+        "",
+        f"Version {__version__} — {len(REGISTRY)} tools across {len(REGISTRY.groups())} groups.",
+        "",
+        "## Input formats",
+        "- Direct: pass data fields (`y_data`, `x_data`, etc.) in the tool call.",
+        "- File: set `file_path` to a `.csv` / `.json` / `.xlsx` / `.xls` / `.txt` file.",
+        "",
+        "## Output formats",
+        "- `json` (default, structured result model)",
+        "- `markdown` (human-readable tables and coefficient stars)",
+        "- `text` (compact dictionary dump — Pydantic model fallback)",
+        "",
+        "## Error payload",
+        "All tool failures return a uniform shape:",
+        "```json",
+        '{"ok": false, "error": {"code": "...", "message": "...", "details": {...}}}',
+        "```",
+        "Set the environment variable `AIGROUP_ECON_MCP_DEBUG=1` to include a",
+        "traceback in the `error` object.",
+        "",
+        "## Tools by group",
+        "",
+    ]
+    for group, specs in sorted(REGISTRY.groups().items()):
+        pretty = group.replace("_", " ").title()
+        lines.append(f"### {pretty} ({len(specs)})")
+        lines.append("")
+        for spec in sorted(specs, key=lambda s: s.name):
+            lines.append(f"- **`{spec.name}`** — {spec.description}")
+        lines.append("")
+    lines.append(
+        "Detailed per-tool parameter shapes are available via "
+        "the `guide://data-formats` MCP resource."
+    )
+    return "\n".join(lines)
+
+
+def _load_static_guide(name: str) -> str:
+    path = Path(__file__).resolve().parent.parent / "resources" / name
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return f"Guide {name!r} not available. See the project README."
 
 
 def _configure_stdio_utf8() -> None:

@@ -79,7 +79,7 @@ def _coerce_to_2d(data: Any, *, field: str) -> Any:
 
 
 def _make_var_svar_shim() -> Callable[..., str]:
-    adapter = _resolve("tools.time_series_panel_data_adapter:var_svar_adapter")
+    adapter = _resolve("tools.time_series_adapter:var_svar_adapter")
 
     def var_svar_tool(
         data: list[list[float]] | None = None,
@@ -109,7 +109,7 @@ def _make_var_svar_shim() -> Callable[..., str]:
 
 
 def _make_cointegration_shim() -> Callable[..., str]:
-    adapter = _resolve("tools.time_series_panel_data_adapter:cointegration_adapter")
+    adapter = _resolve("tools.time_series_adapter:cointegration_adapter")
 
     def cointegration_tool(
         data: list[list[float]] | None = None,
@@ -242,25 +242,25 @@ _MANIFEST: tuple[tuple[str, str, Any, str], ...] = (
     (
         "time_series_arima_model",
         "time_series",
-        "tools.time_series_panel_data_adapter:arima_adapter",
+        "tools.time_series_adapter:arima_adapter",
         "ARIMA Time Series Model",
     ),
     (
         "time_series_exponential_smoothing",
         "time_series",
-        "tools.time_series_panel_data_adapter:exp_smoothing_adapter",
+        "tools.time_series_adapter:exp_smoothing_adapter",
         "Exponential Smoothing Model",
     ),
     (
         "time_series_garch_model",
         "time_series",
-        "tools.time_series_panel_data_adapter:garch_adapter",
+        "tools.time_series_adapter:garch_adapter",
         "GARCH Volatility Model",
     ),
     (
         "time_series_unit_root_tests",
         "time_series",
-        "tools.time_series_panel_data_adapter:unit_root_adapter",
+        "tools.time_series_adapter:unit_root_adapter",
         "Unit Root Tests (ADF/PP/KPSS)",
     ),
     ("time_series_var_svar_model", "time_series", _make_var_svar_shim(), "VAR/SVAR Model"),
@@ -273,31 +273,31 @@ _MANIFEST: tuple[tuple[str, str, Any, str], ...] = (
     (
         "panel_data_dynamic_model",
         "time_series",
-        "tools.time_series_panel_data_adapter:dynamic_panel_adapter",
+        "tools.panel_data_adapter:dynamic_panel_adapter",
         "Dynamic Panel Data Model",
     ),
     (
         "panel_data_diagnostics",
         "time_series",
-        "tools.time_series_panel_data_adapter:panel_diagnostics_adapter",
+        "tools.panel_data_adapter:panel_diagnostics_adapter",
         "Panel Data Diagnostic Tests",
     ),
     (
         "panel_var_model",
         "time_series",
-        "tools.time_series_panel_data_adapter:panel_var_adapter",
+        "tools.panel_data_adapter:panel_var_adapter",
         "Panel VAR Model",
     ),
     (
         "structural_break_tests",
         "time_series",
-        "tools.time_series_panel_data_adapter:structural_break_adapter",
+        "tools.time_series_adapter:structural_break_adapter",
         "Structural Break Tests",
     ),
     (
         "time_varying_parameter_models",
         "time_series",
-        "tools.time_series_panel_data_adapter:time_varying_parameter_adapter",
+        "tools.time_series_adapter:time_varying_parameter_adapter",
         "Time-Varying Parameter Models",
     ),
     # machine learning

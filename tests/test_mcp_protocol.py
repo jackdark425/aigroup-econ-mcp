@@ -19,10 +19,8 @@ import json
 import sys
 
 import pytest
-
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -123,11 +121,9 @@ async def test_tools_call_returns_structured_error_on_bad_input() -> None:
     # Either the protocol-level isError is set, or the body carries {"ok": false, ...}
     body = result.content[0].text if result.content else ""
     parsed = json.loads(body) if body else {}
-    assert (
-        result.isError
-        or parsed.get("ok") is False
-        or "error" in parsed
-    ), f"expected structured error, got: {parsed}"
+    assert result.isError or parsed.get("ok") is False or "error" in parsed, (
+        f"expected structured error, got: {parsed}"
+    )
 
 
 async def test_unknown_tool_returns_error() -> None:
@@ -141,5 +137,8 @@ async def test_unknown_tool_returns_error() -> None:
                 assert result.isError, "expected error for unknown tool"
             except Exception as exc:
                 # Some SDK versions raise — that's a valid failure mode.
-                assert "unknown" in str(exc).lower() or "not found" in str(exc).lower() \
+                assert (
+                    "unknown" in str(exc).lower()
+                    or "not found" in str(exc).lower()
                     or "tool" in str(exc).lower()
+                )

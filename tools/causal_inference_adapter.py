@@ -74,8 +74,19 @@ def did_adapter(
     双重差分法 (DID) 适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, treatment=treatment, time_period=time_period, outcome=outcome, covariates=covariates)
-    treatment, time_period, outcome, covariates = _merged["treatment"], _merged["time_period"], _merged["outcome"], _merged["covariates"]
+    _merged = merge_file_data(
+        file_path,
+        treatment=treatment,
+        time_period=time_period,
+        outcome=outcome,
+        covariates=covariates,
+    )
+    treatment, time_period, outcome, covariates = (
+        _merged["treatment"],
+        _merged["time_period"],
+        _merged["outcome"],
+        _merged["covariates"],
+    )
 
     # 调用核心方法
     result: DIDResult = difference_in_differences(
@@ -150,7 +161,9 @@ def psm_adapter(
     倾向得分匹配 (PSM) 适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, treatment=treatment, outcome=outcome, covariates=covariates)
+    _merged = merge_file_data(
+        file_path, treatment=treatment, outcome=outcome, covariates=covariates
+    )
     treatment, outcome, covariates = _merged["treatment"], _merged["outcome"], _merged["covariates"]
 
     # 调用核心方法
@@ -189,8 +202,15 @@ def fixed_effects_adapter(
     固定效应模型适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, y_data=y_data, x_data=x_data, entity_ids=entity_ids, time_periods=time_periods)
-    y_data, x_data, entity_ids, time_periods = _merged["y_data"], _merged["x_data"], _merged["entity_ids"], _merged["time_periods"]
+    _merged = merge_file_data(
+        file_path, y_data=y_data, x_data=x_data, entity_ids=entity_ids, time_periods=time_periods
+    )
+    y_data, x_data, entity_ids, time_periods = (
+        _merged["y_data"],
+        _merged["x_data"],
+        _merged["entity_ids"],
+        _merged["time_periods"],
+    )
 
     # 调用核心方法
     result: FixedEffectsResult = fixed_effects_model(
@@ -223,8 +243,15 @@ def random_effects_adapter(
     随机效应模型适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, y_data=y_data, x_data=x_data, entity_ids=entity_ids, time_periods=time_periods)
-    y_data, x_data, entity_ids, time_periods = _merged["y_data"], _merged["x_data"], _merged["entity_ids"], _merged["time_periods"]
+    _merged = merge_file_data(
+        file_path, y_data=y_data, x_data=x_data, entity_ids=entity_ids, time_periods=time_periods
+    )
+    y_data, x_data, entity_ids, time_periods = (
+        _merged["y_data"],
+        _merged["x_data"],
+        _merged["entity_ids"],
+        _merged["time_periods"],
+    )
 
     # 调用核心方法
     result: RandomEffectsResult = random_effects_model(
@@ -258,8 +285,14 @@ def rdd_adapter(
     回归断点设计 (RDD) 适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, running_variable=running_variable, outcome=outcome, cutoff=cutoff)
-    running_variable, outcome, cutoff = _merged["running_variable"], _merged["outcome"], _merged["cutoff"]
+    _merged = merge_file_data(
+        file_path, running_variable=running_variable, outcome=outcome, cutoff=cutoff
+    )
+    running_variable, outcome, cutoff = (
+        _merged["running_variable"],
+        _merged["outcome"],
+        _merged["cutoff"],
+    )
 
     # 调用核心方法
     result: RDDResult = regression_discontinuity(
@@ -297,8 +330,21 @@ def synthetic_control_adapter(
     合成控制法适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, outcome=outcome, treatment_period=treatment_period, treated_unit=treated_unit, donor_units=donor_units, time_periods=time_periods)
-    outcome, treatment_period, treated_unit, donor_units, time_periods = _merged["outcome"], _merged["treatment_period"], _merged["treated_unit"], _merged["donor_units"], _merged["time_periods"]
+    _merged = merge_file_data(
+        file_path,
+        outcome=outcome,
+        treatment_period=treatment_period,
+        treated_unit=treated_unit,
+        donor_units=donor_units,
+        time_periods=time_periods,
+    )
+    outcome, treatment_period, treated_unit, donor_units, time_periods = (
+        _merged["outcome"],
+        _merged["treatment_period"],
+        _merged["treated_unit"],
+        _merged["donor_units"],
+        _merged["time_periods"],
+    )
 
     # 调用核心方法
     result: SyntheticControlResult = synthetic_control_method(
@@ -336,8 +382,21 @@ def event_study_adapter(
     事件研究法适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, outcome=outcome, treatment=treatment, entity_ids=entity_ids, time_periods=time_periods, event_time=event_time)
-    outcome, treatment, entity_ids, time_periods, event_time = _merged["outcome"], _merged["treatment"], _merged["entity_ids"], _merged["time_periods"], _merged["event_time"]
+    _merged = merge_file_data(
+        file_path,
+        outcome=outcome,
+        treatment=treatment,
+        entity_ids=entity_ids,
+        time_periods=time_periods,
+        event_time=event_time,
+    )
+    outcome, treatment, entity_ids, time_periods, event_time = (
+        _merged["outcome"],
+        _merged["treatment"],
+        _merged["entity_ids"],
+        _merged["time_periods"],
+        _merged["event_time"],
+    )
 
     # 调用核心方法
     result: EventStudyResult = event_study(
@@ -374,8 +433,19 @@ def triple_difference_adapter(
     三重差分法 (DDD) 适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, outcome=outcome, treatment_group=treatment_group, time_period=time_period, cohort_group=cohort_group)
-    outcome, treatment_group, time_period, cohort_group = _merged["outcome"], _merged["treatment_group"], _merged["time_period"], _merged["cohort_group"]
+    _merged = merge_file_data(
+        file_path,
+        outcome=outcome,
+        treatment_group=treatment_group,
+        time_period=time_period,
+        cohort_group=cohort_group,
+    )
+    outcome, treatment_group, time_period, cohort_group = (
+        _merged["outcome"],
+        _merged["treatment_group"],
+        _merged["time_period"],
+        _merged["cohort_group"],
+    )
 
     # 调用核心方法
     result: TripeDifferenceResult = triple_difference(
@@ -411,8 +481,15 @@ def mediation_adapter(
     中介效应分析适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, outcome=outcome, treatment=treatment, mediator=mediator, covariates=covariates)
-    outcome, treatment, mediator, covariates = _merged["outcome"], _merged["treatment"], _merged["mediator"], _merged["covariates"]
+    _merged = merge_file_data(
+        file_path, outcome=outcome, treatment=treatment, mediator=mediator, covariates=covariates
+    )
+    outcome, treatment, mediator, covariates = (
+        _merged["outcome"],
+        _merged["treatment"],
+        _merged["mediator"],
+        _merged["covariates"],
+    )
 
     # 调用核心方法
     result: MediationResult = mediation_analysis(
@@ -445,8 +522,15 @@ def moderation_adapter(
     调节效应分析适配器
     """
     # 从文件加载数据
-    _merged = merge_file_data(file_path, outcome=outcome, predictor=predictor, moderator=moderator, covariates=covariates)
-    outcome, predictor, moderator, covariates = _merged["outcome"], _merged["predictor"], _merged["moderator"], _merged["covariates"]
+    _merged = merge_file_data(
+        file_path, outcome=outcome, predictor=predictor, moderator=moderator, covariates=covariates
+    )
+    outcome, predictor, moderator, covariates = (
+        _merged["outcome"],
+        _merged["predictor"],
+        _merged["moderator"],
+        _merged["covariates"],
+    )
 
     # 调用核心方法
     result: ModerationResult = moderation_analysis(
