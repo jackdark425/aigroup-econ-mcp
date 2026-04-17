@@ -24,9 +24,9 @@ def test_manifest_entries_are_well_formed() -> None:
         assert isinstance(group, str) and group, f"empty group in {name!r}"
         assert description, f"empty description for {name!r}"
         # target is either a pre-bound callable (shim) or a 'module:function' path
-        assert callable(target) or (
-            isinstance(target, str) and ":" in target
-        ), f"bad target for {name!r}: {target!r}"
+        assert callable(target) or (isinstance(target, str) and ":" in target), (
+            f"bad target for {name!r}: {target!r}"
+        )
 
 
 def test_manifest_names_are_unique() -> None:
@@ -81,19 +81,21 @@ def test_callable_targets_accept_kwargs() -> None:
         assert callable(target), f"shim for {name!r} is not callable"
 
 
-EXPECTED_GROUPS = frozenset({
-    "basic_parametric",
-    "causal_inference",
-    "time_series",
-    "machine_learning",
-    "microecon",
-    "missing_data",
-    "model_specification",
-    "nonparametric",
-    "spatial_econometrics",
-    "statistical_inference",
-    "distribution_analysis",
-})
+EXPECTED_GROUPS = frozenset(
+    {
+        "basic_parametric",
+        "causal_inference",
+        "time_series",
+        "machine_learning",
+        "microecon",
+        "missing_data",
+        "model_specification",
+        "nonparametric",
+        "spatial_econometrics",
+        "statistical_inference",
+        "distribution_analysis",
+    }
+)
 
 
 def test_manifest_groups_are_in_known_set() -> None:
