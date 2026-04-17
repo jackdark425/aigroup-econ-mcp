@@ -147,8 +147,11 @@ class EconGradientBoosting:
             for imp_type in importance_types:
                 try:
                     importances[imp_type] = self.model.feature_importances_
-                except Exception:
-                    pass
+                except AttributeError:
+                    # Some xgboost versions / booster types don't expose every
+                    # importance variant — skip the missing ones rather than
+                    # failing the whole feature-importance call.
+                    continue
             return importances
 
     def evaluate(self, X: np.ndarray | pd.DataFrame, y: np.ndarray | pd.Series) -> dict:

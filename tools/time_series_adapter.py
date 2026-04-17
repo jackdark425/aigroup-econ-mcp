@@ -95,6 +95,48 @@ from .data_loader import DataLoader
 from .output_formatter import OutputFormatter
 
 
+def _load_multivariate_series(file_path: str) -> dict:
+    """Load multivariate time-series input for VAR / cointegration.
+
+    JSON format (preferred):
+        {"data": [[v1_t1, v2_t1, ...], [v1_t2, v2_t2, ...], ...],
+         "variables": ["GDP", "Inflation", ...]}   # optional
+
+    CSV / Excel fallback: each column is a variable. First row may be a
+    header — pandas infers it. Returns a dict matching the JSON shape.
+    """
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"file not found: {file_path}")
+    suffix = path.suffix.lower()
+
+    if suffix == ".json":
+        with path.open(encoding="utf-8") as f:
+            loaded = json.load(f)
+        if isinstance(loaded, dict) and "data" in loaded:
+            return {
+                "data": loaded["data"],
+                "variables": loaded.get("variables"),
+            }
+        if isinstance(loaded, list):
+            return {"data": loaded, "variables": None}
+        raise ValueError(
+            "multivariate JSON must be a list or an object with a 'data' key"
+        )
+    if suffix in {".csv", ".xlsx", ".xls"}:
+        import pandas as pd
+
+        reader = pd.read_csv if suffix == ".csv" else pd.read_excel
+        df = reader(path)
+        if df.empty:
+            raise ValueError("data frame is empty")
+        return {
+            "data": df.values.tolist(),
+            "variables": df.columns.tolist(),
+        }
+    raise ValueError(f"unsupported file format for multivariate series: {suffix!r}")
+
+
 def arima_adapter(
     data: list[float] | None = None,
     file_path: str | None = None,
@@ -119,7 +161,8 @@ def arima_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Univariate time series: use the flat loader which returns {"data": [...]}
+        data_dict = DataLoader.load_flat(file_path)
         data = data_dict["data"]
     elif data is None:
         raise ValueError("Must provide either file_path or data")
@@ -174,7 +217,8 @@ def exp_smoothing_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Univariate time series: use the flat loader which returns {"data": [...]}
+        data_dict = DataLoader.load_flat(file_path)
         data = data_dict["data"]
     elif data is None:
         raise ValueError("Must provide either file_path or data")
@@ -227,7 +271,8 @@ def garch_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Univariate time series: use the flat loader which returns {"data": [...]}
+        data_dict = DataLoader.load_flat(file_path)
         data = data_dict["data"]
     elif data is None:
         raise ValueError("Must provide either file_path or data")
@@ -278,7 +323,8 @@ def unit_root_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Univariate time series: use the flat loader which returns {"data": [...]}
+        data_dict = DataLoader.load_flat(file_path)
         data = data_dict["data"]
     elif data is None:
         raise ValueError("Must provide either file_path or data")
@@ -343,7 +389,8 @@ def var_svar_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Multivariate series (each row = one time point, columns = variables)
+        data_dict = _load_multivariate_series(file_path)
         data = data_dict["data"]
         variables = data_dict.get("variables") or variables
     elif data is None:
@@ -426,7 +473,8 @@ def cointegration_adapter(
     """
     # 1. 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Multivariate series (each row = one time point, columns = variables)
+        data_dict = _load_multivariate_series(file_path)
         data = data_dict["data"]
         variables = data_dict.get("variables") or variables
     elif data is None:
@@ -529,7 +577,8 @@ def structural_break_adapter(
     """
     # 数据准备
     if file_path:
-        data_dict = DataLoader.load_from_file(file_path)
+        # Univariate time series: use the flat loader which returns {"data": [...]}
+        data_dict = DataLoader.load_flat(file_path)
         data = data_dict["data"]
     elif data is None:
         raise ValueError("Must provide either file_path or data")

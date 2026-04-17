@@ -37,6 +37,10 @@ class ModelSelectionResult(BaseModel):
     n_obs: int = Field(..., description="观测数量")
     n_params: int = Field(..., description="参数数量")
     cv_score: float | None = Field(None, description="交叉验证得分")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal issues; if non-empty, cv_score may be None or degraded because one or more CV folds failed numerically",
+    )
 
 
 def granger_causality_test(
@@ -156,9 +160,11 @@ def model_selection_criteria(
         hqic = np.inf
 
     # 交叉验证
-    cv_score = None
+    cv_score: float | None = None
+    fit_warnings: list[str] = []
     if cv_folds is not None:
-        cv_score = _cross_validation(y, X, cv_folds)
+        cv_score, cv_warnings = _cross_validation(y, X, cv_folds)
+        fit_warnings.extend(cv_warnings)
 
     return ModelSelectionResult(
         aic=aic,
@@ -170,10 +176,13 @@ def model_selection_criteria(
         n_obs=n,
         n_params=k,
         cv_score=float(cv_score) if cv_score is not None else None,
+        fit_warnings=fit_warnings,
     )
 
 
-def _cross_validation(y: np.ndarray, X: np.ndarray, folds: int | None) -> float:
+def _cross_validation(
+    y: np.ndarray, X: np.ndarray, folds: int | None
+) -> tuple[float | None, list[str]]:
     """
     执行交叉验证
 
@@ -183,23 +192,35 @@ def _cross_validation(y: np.ndarray, X: np.ndarray, folds: int | None) -> float:
         folds: 折数 (-1表示留一法，其他正数表示K折交叉验证)
 
     Returns:
-        float: 交叉验证得分 (平均MSE)
+        (cv_score, warnings) — cv_score is mean MSE when computable, else None;
+        warnings names each bail-out so the caller can surface them rather than
+        silently substituting zero / None.
     """
+    warnings: list[str] = []
     n = len(y)
 
     if folds is None or folds == 0:
-        return None
+        warnings.append(f"cv_folds={folds!r}; cross-validation skipped")
+        return None, warnings
 
     if folds == -1 or folds >= n:
         # 留一法交叉验证
         folds = n
 
-    if folds <= 1 or X.shape[0] != n:
-        return None
+    if folds <= 1:
+        warnings.append(f"cv_folds resolved to {folds}; need >=2 folds, skipping")
+        return None, warnings
+    if X.shape[0] != n:
+        warnings.append(f"y length ({n}) != X rows ({X.shape[0]}); CV aborted")
+        return None, warnings
 
     # 检查是否有足够的数据进行训练和测试
     if X.shape[0] < X.shape[1]:
-        return None
+        warnings.append(
+            f"underdetermined system (n_obs={X.shape[0]} < n_features={X.shape[1]}); "
+            "CV aborted to avoid singular training folds"
+        )
+        return None, warnings
 
     # 创建折叠索引
     indices = np.arange(n)
@@ -211,9 +232,9 @@ def _cross_validation(y: np.ndarray, X: np.ndarray, folds: int | None) -> float:
     fold_sizes[: n % folds] += 1
 
     current = 0
-    mse_scores = []
+    mse_scores: list[float] = []
 
-    for fold_size in fold_sizes:
+    for fold_index, fold_size in enumerate(fold_sizes):
         start, stop = current, current + fold_size
         test_idx = indices[start:stop]
         train_idx = np.concatenate([indices[:start], indices[stop:]])
@@ -225,6 +246,11 @@ def _cross_validation(y: np.ndarray, X: np.ndarray, folds: int | None) -> float:
         try:
             # 检查是否有足够的数据进行训练和测试
             if X_train.shape[0] < X_train.shape[1] or X_train.shape[0] == 0 or X_test.shape[0] == 0:
+                warnings.append(
+                    f"fold {fold_index}: degenerate train/test split "
+                    f"(train={X_train.shape}, test={X_test.shape}), skipped"
+                )
+                current = stop
                 continue
 
             # 训练模型，使用带正则化的求解方法
@@ -251,30 +277,42 @@ def _cross_validation(y: np.ndarray, X: np.ndarray, folds: int | None) -> float:
                         # 如果仍然失败，使用伪逆
                         beta_train = np.linalg.pinv(XtX_reg) @ X_train.T @ y_train
                 else:
+                    warnings.append(
+                        f"fold {fold_index}: empty XtX matrix during regularized fit, skipped"
+                    )
+                    current = stop
                     continue
 
             # 预测
             try:
                 y_pred = X_test @ beta_train
-            except Exception:
+            except Exception as exc:
+                warnings.append(f"fold {fold_index}: prediction failed ({exc}), skipped")
+                current = stop
                 continue
 
             # 检查预测值是否有效
             if not np.all(np.isfinite(y_pred)):
+                warnings.append(f"fold {fold_index}: non-finite predictions, skipped")
+                current = stop
                 continue
 
             # 计算MSE
             mse = np.mean((y_test - y_pred) ** 2)
             # 检查MSE是否有效
             if np.isfinite(mse):
-                mse_scores.append(mse)
-        except (np.linalg.LinAlgError, ValueError, ZeroDivisionError):
-            # 如果出现数值问题，跳过这一折
-            pass
-        except Exception:
-            # 捕获其他可能的异常
-            pass
+                mse_scores.append(float(mse))
+            else:
+                warnings.append(f"fold {fold_index}: non-finite MSE, skipped")
+        except (np.linalg.LinAlgError, ValueError, ZeroDivisionError) as exc:
+            # 数值/维度/除零问题属于已知降级路径
+            warnings.append(f"fold {fold_index}: numerical issue ({type(exc).__name__}: {exc})")
+        except Exception as exc:  # noqa: BLE001 — last-resort guard, still recorded
+            warnings.append(f"fold {fold_index}: unexpected error ({type(exc).__name__}: {exc})")
 
         current = stop
 
-    return np.mean(mse_scores) if mse_scores and len(mse_scores) > 0 else None
+    if not mse_scores:
+        warnings.append("no CV fold produced a finite MSE; cv_score is None")
+        return None, warnings
+    return float(np.mean(mse_scores)), warnings

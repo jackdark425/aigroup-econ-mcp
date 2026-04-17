@@ -112,11 +112,14 @@ def var_model(
         available_attrs = [attr for attr in dir(fitted_model) if not attr.startswith("_")]
 
         # 尝试从summary中提取信息
+        # Touching ``summary()`` is a best-effort diagnostic print — some
+        # linearmodels versions raise on statsmodels' summary rendering. The
+        # subsequent coefficient-extraction logic is resilient regardless.
         try:
             str(fitted_model.summary())
-            # 如果能够获取summary，说明模型拟合成功
             print(f"VAR模型拟合成功，可用属性: {available_attrs}")
-        except Exception:
+        except (AttributeError, ValueError, RuntimeError):
+            # summary rendering failed; coefficient extraction below still runs
             pass
 
         # 使用更稳健的参数提取方法

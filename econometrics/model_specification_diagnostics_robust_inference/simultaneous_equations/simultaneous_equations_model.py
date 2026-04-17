@@ -23,6 +23,10 @@ class SimultaneousEquationsResult(BaseModel):
     equation_names: list[str] = Field(..., description="方程名称")
     endogenous_vars: list[str] = Field(..., description="内生变量名称")
     exogenous_vars: list[str] = Field(..., description="外生变量名称")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal fit issues; if non-empty, one or more equations used zero/unit placeholder values rather than real 3SLS estimates",
+    )
 
 
 def two_stage_least_squares(
@@ -150,20 +154,21 @@ def two_stage_least_squares(
         model = IV3SLS(equation_dicts, instruments=instruments_df)
         results = model.fit()
 
-        # 提取结果
+        # 提取结果 — 避免影子化函数参数 ``equation_names``
         coefficients = []
         std_errors = []
         t_values = []
         p_values = []
         r_squared_vals = []
         adj_r_squared_vals = []
-        equation_names = []
+        output_equation_names: list[str] = []
         endogenous_vars = []
         exogenous_vars = []
+        fit_warnings: list[str] = []
 
         # 遍历每个方程的结果
-        for eq_name in results.equation_labels:
-            equation_names.append(eq_name)
+        for eq_idx, eq_name in enumerate(results.equation_labels):
+            output_equation_names.append(eq_name)
 
             try:
                 # 获取系数
@@ -184,7 +189,7 @@ def two_stage_least_squares(
                 # R方值 (简化处理)
                 r_squared_vals.append(float(results.rsquared))
                 adj_r_squared_vals.append(float(results.rsquared_adj))
-            except Exception:
+            except Exception as exc:
                 # Fallback values when result extraction for an individual
                 # equation fails. x_data is shared across equations so its
                 # width is the parameter count; +1 if a constant was added.
@@ -195,6 +200,10 @@ def two_stage_least_squares(
                 p_values.append([1.0] * n_params)
                 r_squared_vals.append(0.0)
                 adj_r_squared_vals.append(0.0)
+                fit_warnings.append(
+                    f"equation {eq_idx} ({eq_name}): result extraction failed "
+                    f"({type(exc).__name__}: {exc}); coefficients/SE/t/p/R² are placeholders"
+                )
 
         # 提取变量名称
         for _ in range(n_equations):
@@ -204,27 +213,32 @@ def two_stage_least_squares(
             endogenous_vars.extend(eq_endog)
             exogenous_vars.extend(eq_exog)
 
-    except Exception:
+    except Exception as outer_exc:
         # 如果使用linearmodels失败，回退到手动实现
-        # 这里为了简化，返回默认值
+        # 这里为了简化，返回默认值 — 同时记录警告并保留输入方程名
+        input_equation_names = equation_names
         coefficients = []
         std_errors = []
         t_values = []
         p_values = []
         r_squared_vals = []
         adj_r_squared_vals = []
-        equation_names = []
+        output_equation_names = []
         endogenous_vars = []
         exogenous_vars = []
+        fit_warnings = [
+            f"IV3SLS fit failed entirely ({type(outer_exc).__name__}: {outer_exc}); "
+            "all equations returned as zero/unit placeholders — NOT real 3SLS estimates"
+        ]
 
-        # 为每个方程创建默认结果
+        # 为每个方程创建默认结果 —— 引用入参方程名（不再被局部变量影子化）
         for i in range(n_equations):
             eq_name = (
-                equation_names[i]
-                if equation_names and i < len(equation_names)
+                input_equation_names[i]
+                if input_equation_names and i < len(input_equation_names)
                 else f"equation_{i + 1}"
             )
-            equation_names.append(eq_name)
+            output_equation_names.append(eq_name)
 
             n_params = len(x_data[0]) if x_data and len(x_data) > 0 else 1
             coefficients.append([0.0] * n_params)
@@ -247,7 +261,8 @@ def two_stage_least_squares(
         r_squared=r_squared_vals,
         adj_r_squared=adj_r_squared_vals,
         n_obs=n_obs,
-        equation_names=equation_names,
+        equation_names=output_equation_names,
         endogenous_vars=list(set(endogenous_vars)),
         exogenous_vars=list(set(exogenous_vars)),
+        fit_warnings=fit_warnings,
     )

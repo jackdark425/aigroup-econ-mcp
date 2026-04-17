@@ -172,6 +172,45 @@ def test_every_group_has_at_least_one_tool() -> None:
         assert specs, f"group {name!r} has no tools"
 
 
+def test_time_series_univariate_file_path_uses_flat_loader(tmp_path) -> None:
+    """Regression guard for the bug class: time_series adapters called
+    DataLoader.load_from_file (structured loader returning y_data/x_data)
+    then read data_dict["data"] — a key that doesn't exist. Every
+    univariate time_series tool silently KeyError'd on file_path input.
+
+    Fix: univariate adapters now use DataLoader.load_flat which returns
+    {"data": [...]}. This test creates a valid flat-data file and
+    confirms the tool does not KeyError on 'data'.
+    """
+    txt_path = tmp_path / "series.txt"
+    txt_path.write_text("\n".join(str(1.0 + 0.1 * i) for i in range(40)))
+
+    result = _invoke("time_series_arima_model", file_path=str(txt_path), order=[1, 0, 0])
+    body = json.dumps(result)
+    assert "'data'" not in body or "KeyError" not in body, (
+        f"time_series univariate file_path regression: {body!r}"
+    )
+
+
+def test_time_series_multivariate_file_path_loads_json(tmp_path) -> None:
+    """Regression guard for VAR/cointegration file_path branch. A JSON
+    matrix input must be accepted and handed through the adapter without
+    a key-mismatch error."""
+    import json as _json
+
+    json_path = tmp_path / "mv.json"
+    series = [
+        [1.0 + 0.1 * i + (0.05 if i % 2 else -0.05),
+         2.0 - 0.05 * i + (0.03 if i % 3 else -0.03)]
+        for i in range(24)
+    ]
+    json_path.write_text(_json.dumps({"data": series, "variables": ["a", "b"]}))
+
+    result = _invoke("time_series_var_svar_model", file_path=str(json_path), lags=1)
+    body = json.dumps(result)
+    assert "KeyError" not in body, f"VAR multivariate file_path regression: {body!r}"
+
+
 def test_ml_adapter_file_path_does_not_silently_drop_data(tmp_path) -> None:
     """Regression guard for the pre-71fa125 bug where the ML adapter read
     ``data.get("X")`` — a key that ``DataLoader.load_from_file`` never

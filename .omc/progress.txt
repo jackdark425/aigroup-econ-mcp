@@ -1,0 +1,17 @@
+Ralph session: 全面优化mcp项目，并修复所有的bug
+Start HEAD: 65ec070 (feat: surface fit_warnings on 4 silent-fallback result models)
+
+Prior context (from 7 previous commits on main):
+- 194 tests across 8 files all green
+- ruff check . clean repo-wide
+- wheel 188KB / 121 files
+- Bugs fixed previously: F821 undefined name, B006 mutable default,
+  ML file_path key mismatch (8 tools), dynamic panel label lie
+- fit_warnings applied to 4 result models (quantile/var/cox/dynamic_panel)
+
+Scope of THIS ralph run (5 stories):
+  US-001: model_selection silent CV fallback
+  US-002: simultaneous_equations silent result-extraction fallback
+  US-003: dedup diff_gmm / sys_gmm (~-200 LOC)
+  US-004: thorough bug hunt (remaining silent except + adapter keys)
+  US-005: final wheel + protocol e2e + push
