@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aigroup_econ_mcp"
-version = "2.0.9"
+version = "2.0.10"
 description = "Econometrics MCP server with regression, causal inference, time series, panel data, and statistical analysis workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -81,8 +81,6 @@ exclude = [
     "**/*.py[co]",
     "**/.DS_Store",
     "**/tests",
-    "**/test_*.py",
-    "**/*_test.py",
     "**/test_report.md",
     "econometrics/**/README.md",
     "tools/**/README.md",

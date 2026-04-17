@@ -7,7 +7,7 @@ from .difference_in_differences import DIDResult, difference_in_differences
 from .event_study import EventStudyResult, event_study
 from .first_difference import FirstDifferenceResult, first_difference_model
 from .fixed_effects import FixedEffectsResult, fixed_effects_model
-from .hausman_test import HausmanResult, hausman_test
+from .hausman_specification import HausmanResult, hausman_test
 from .instrumental_variables import IVResult, instrumental_variables_2sls
 from .mediation_analysis import MediationResult, mediation_analysis
 from .moderation_analysis import ModerationResult, moderation_analysis

@@ -4,6 +4,6 @@
 """
 
 from .bootstrap_methods import BootstrapResult, bootstrap_inference
-from .permutation_test import PermutationTestResult, permutation_test
+from .permutation import PermutationTestResult, permutation_test
 
 __all__ = ["bootstrap_inference", "BootstrapResult", "permutation_test", "PermutationTestResult"]

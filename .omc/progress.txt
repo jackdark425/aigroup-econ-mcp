@@ -23,3 +23,46 @@ Start HEAD: 2f57792 (test: +15 correctness tests for ML + microecon)
 Baseline: 42 correctness tests cover ~38 of 66 tools. 28 tools need
 ground-truth verification. Goal: every tool either verified mathematically
 or documented as smoke-only.
+
+---
+Third Ralph session start: 全面修复发现的bug  (2026-04-17)
+Start HEAD: 46d557e (docs: testing paradigm + results)
+
+Trigger: comprehensive PyPI 2.0.9 test (PYPI_209_TEST_REPORT.md)
+  - 15/66 tools dead on clean PyPI install
+  - Root cause: pyproject wheel-exclude '**/*_test.py' eats
+    permutation_test.py + hausman_test.py (both real business code)
+  - Also: README silent on macOS libomp for xgboost-backed ML tools
+  - Also: test_manifest.py runs against source tree, can't catch
+    wheel-level packaging regressions
+
+Scope of THIS ralph run (6 stories, prd.json):
+  US-001: rename permutation_test.py -> permutation.py + fix imports
+  US-002: rename hausman_test.py -> hausman_specification.py + fix imports
+  US-003: README libomp note for macOS
+  US-004: wheel-roundtrip manifest test (slow) to block future regressions
+  US-005: bump 2.0.9 -> 2.0.10, CHANGELOG
+  US-006: e2e verification against freshly-built wheel
+
+Third Ralph session COMPLETED
+Final HEAD will include:
+- 2 renames (permutation_test.py -> permutation.py,
+  hausman_test.py -> hausman_specification.py)
+- 2 __init__.py single-line import updates
+- pyproject version 2.0.9 -> 2.0.10 + wheel exclude tightened
+  (dropped **/test_*.py + **/*_test.py, kept **/tests dir rule)
+- aigroup_econ_mcp/__init__.py version 2.0.9 -> 2.0.10
+- README libomp note (macOS section, 4 affected tools listed)
+- CHANGELOG 2.0.10 entry (fixed + added)
+- NEW tests/test_wheel_roundtrip.py (2 tests, marked slow)
+
+Verification:
+- Full suite: 273 pass / 1 skip (pygam) / 0 fail
+- ruff: clean
+- Wheel rebuild + fresh-venv install: 66 tools, 0 unavailable
+- Negative test on PyPI 2.0.9: new test catches the regression
+- architect review: APPROVED with 2 corrections applied
+  (CHANGELOG accuracy + pyproject tightening, both done)
+- post-deslop regression: GREEN
+
+Ready for 2.0.10 release.

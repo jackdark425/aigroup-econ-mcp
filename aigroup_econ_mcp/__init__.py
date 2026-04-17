@@ -1,6 +1,6 @@
 """aigroup-econ-mcp — professional econometrics MCP server."""
 
-__version__ = "2.0.9"
+__version__ = "2.0.10"
 __author__ = "AI Group"
 __email__ = "jackdark425@gmail.com"
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-2.0.9-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
+[![Version](https://img.shields.io/badge/version-2.0.10-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
 [![Tools](https://img.shields.io/badge/Tools-66-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
 
 > Econometrics MCP server for regression, causal inference, time series, panel data, machine learning, and broader statistical analysis workflows.
@@ -70,6 +70,26 @@ uvx --no-cache aigroup-econ-mcp
 pip install aigroup-econ-mcp
 aigroup-econ-mcp
 ```
+
+### macOS users: install libomp for XGBoost-backed tools
+
+A subset of machine-learning tools links against `xgboost`, which requires the
+OpenMP runtime (`libomp.dylib`) at import time. Without it, these four tools
+return a `tool_unavailable` payload even though the server itself starts fine:
+
+- `ml_kmeans_clustering`
+- `ml_hierarchical_clustering`
+- `ml_double_machine_learning`
+- `ml_causal_forest`
+
+Install once with Homebrew:
+
+```bash
+brew install libomp
+```
+
+Linux / Windows users are unaffected — the xgboost wheels bundle or locate
+OpenMP automatically.
 
 ## MCP Client Configuration
 

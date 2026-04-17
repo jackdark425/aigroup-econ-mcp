@@ -4,6 +4,44 @@ All notable changes to `aigroup-econ-mcp` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.0.10] — 2026-04-17
+
+Packaging-regression fix for 2.0.9. The 2.0.9 wheel on PyPI silently
+dropped two source files and returned `tool_unavailable` for 15 of the 66
+tools on import — all 13 `causal_*` tools plus `inference_bootstrap` and
+`inference_permutation_test`. Users who ran those tools saw a structured
+`{"ok": false, "error": {"code": "tool_unavailable", ...}}` payload
+with a `ModuleNotFoundError` cause.
+
+### Fixed
+- Renamed `econometrics/statistical_inference/permutation_test.py` to
+  `permutation.py` and the 13-tool-backing
+  `econometrics/causal_inference/causal_identification_strategy/hausman_test.py`
+  to `hausman_specification.py`. The 2.0.9 `hatch` wheel excluded
+  `**/*_test.py` to strip pytest files; these two business modules were
+  collateral damage because their filenames happened to match the rule.
+  Public function names (`permutation_test`, `hausman_test`) are
+  unchanged, so downstream imports of the callables keep working.
+- Updated the two `__init__.py` files to import from the new module paths.
+- Tightened the `[tool.hatch.build.targets.wheel]` exclude list in
+  `pyproject.toml`: removed the now-redundant `**/test_*.py` and
+  `**/*_test.py` patterns, leaving only the `**/tests` directory rule
+  (which already covers every test file in the current layout). Defense
+  in depth with the rename prevents the same class of accident.
+
+### Added
+- `tests/test_wheel_roundtrip.py` (marked `slow`) — builds a wheel with
+  `python -m build` and inspects the wheel's RECORD zip manifest to
+  assert every adapter-target module referenced by `_MANIFEST` ships
+  inside the wheel, plus that no test files leak. This is a cheap
+  proxy for the 2.0.9 regression (a file-shipping bug, not a runtime
+  bug) and catches the same class of exclusion-rule hazards that
+  `test_manifest.py` (source-tree only) could not.
+- README section documenting the macOS `brew install libomp` requirement
+  for the four xgboost-backed ML tools (`ml_kmeans_clustering`,
+  `ml_hierarchical_clustering`, `ml_double_machine_learning`,
+  `ml_causal_forest`).
+
 ## [2.0.9] — 2026-04-17
 
 Major internal refactor. The 66 MCP tool names and their parameters are
