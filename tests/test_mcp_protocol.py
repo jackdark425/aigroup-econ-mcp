@@ -9,8 +9,10 @@ can't:
 * ``tools/list`` schema generation from adapter signatures
 * ``tools/call`` round-trip with a real tool
 
-Running these is slow (process spawn + import of statsmodels, sklearn, etc.),
-so they live behind the ``mcp`` marker by convention.
+Each test spawns a subprocess and imports statsmodels/sklearn/xgboost, so
+they run in ~1s each — heavy relative to the 0.01s in-process tests. All
+tests in this module are marked ``slow``; skip them during rapid dev with
+``pytest -m "not slow"`` and let CI run the full suite.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-pytestmark = pytest.mark.asyncio
+pytestmark = [pytest.mark.asyncio, pytest.mark.slow]
 
 
 SERVER_PARAMS = StdioServerParameters(

@@ -65,22 +65,46 @@ unchanged, so existing MCP clients continue to work.
   compliance, no behaviour change).
 
 ### Tooling & quality
-- `ruff check` now runs clean across all shipped code (`aigroup_econ_mcp/`,
-  `tools/`, `tests/`, and non-test `econometrics/`). The remaining ~27
-  warnings are in `econometrics/tests/` (not part of the wheel) and are
-  covered by per-file-ignores in `pyproject.toml`.
-- End-to-end smoke tests expanded to **35 tests** under `tests/test_e2e_tools.py`
-  covering every one of the 11 tool groups, plus shim behaviour for 1D→2D
-  coercion, input-shape rejection, and the structured error payload contract.
+- `ruff check .` now runs clean **repo-wide**. Legacy `econometrics/tests/`
+  patterns (`import *` etc.) are covered by per-file-ignores in
+  `pyproject.toml`, not noise in the global output.
+- Test suite grew from **0 → 115** across five categories:
+  - `tests/test_registry.py` (6) — registration shape
+  - `tests/test_e2e_tools.py` (35) — in-process tool invocations across all
+    11 groups, shim 1D→2D coercion, input-shape rejection, and the
+    structured error payload contract
+  - `tests/test_mcp_protocol.py` (6, marked `slow`) — real stdio JSON-RPC
+    spawn of `python -m aigroup_econ_mcp` driven by the MCP client SDK
+  - `tests/test_startup_perf.py` (2) — cold `build_server()` < 5s, full
+    subprocess initialize < 15s; catches accidental eager imports
+  - `tests/test_manifest.py` (72: 6 global + 66 parametrized per tool) —
+    static resolution of every `_MANIFEST` target to a live callable
+  - `tests/test_guide.py` (6) — dynamic `guide://econometrics` content
+    validation
 - Redundant dispatcher layer in `tools/output_formatter.py` replaced with a
   tiny factory pattern; `TextFormatter` deleted (45 lines of low-value
-  Chinese one-liner summaries — now falls back to Pydantic dict str).
+  Chinese one-liner summaries — now falls back to `str(model.model_dump())`).
 - `DataLoader` consolidated: `load_from_file()` for tabular inputs,
   `load_flat()` for univariate. `MLEDataLoader` kept as a 3-line shim for
   backwards import compatibility.
 - New `merge_file_data(file_path, **defaults)` helper collapses the
   canonical "load from file if given, else keep caller args" pattern used
   across adapters. Applied to 13 sites in `causal_inference_adapter.py`.
+- Split `tools/time_series_panel_data_adapter.py` (937 LOC) into two
+  focused modules: `tools/time_series_adapter.py` (631 LOC, 8 tools) and
+  `tools/panel_data_adapter.py` (286 LOC, 3 tools). Static class wrapper
+  replaced with module-level functions.
+- Removed 8 dead `if isinstance(data, dict):` branches from
+  `tools/machine_learning_adapter.py` — `DataLoader.load_from_file` never
+  returns non-dict.
+- Stale `resources/MCP_MASTER_GUIDE.md` (said "21 tools", version
+  "2.2.0-component", referenced the deleted component architecture)
+  deleted. The `guide://econometrics` MCP resource is now rendered
+  dynamically from `REGISTRY` at request time.
+- Migrated 53 deprecated `result.dict()` calls to `result.model_dump()`
+  for Pydantic v2 forward compatibility.
+- Registered `slow` pytest marker so CI runs everything and rapid-dev
+  iteration can use `pytest -m "not slow"` to skip subprocess tests.
 - Removed dead `prompts/` directory (orphan FastMCP prompt templates never
   wired up anywhere).
 - 32 sites now use proper `raise X from err`/`from None` exception chaining
