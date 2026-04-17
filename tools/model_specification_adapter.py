@@ -105,7 +105,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"模型诊断检验完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -146,7 +146,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"GLS回归完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -188,7 +188,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"WLS回归完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -229,7 +229,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"稳健标准误回归完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -268,7 +268,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"模型选择分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -311,7 +311,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"正则化回归({method})完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -354,7 +354,7 @@ class ModelSpecificationAdapter:
         )
 
         # 3. 格式化输出
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"联立方程模型(2SLS)分析完成！结果已保存到: {save_path}\n\n{json_result}"

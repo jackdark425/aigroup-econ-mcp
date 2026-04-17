@@ -54,7 +54,7 @@ def spatial_weights_adapter(
 
     # 格式化输出
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -101,7 +101,7 @@ def morans_i_adapter(
 
     # 格式化输出
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -141,7 +141,7 @@ def gearys_c_adapter(
     )
 
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -176,7 +176,7 @@ def local_moran_adapter(
     )
 
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -236,7 +236,7 @@ def spatial_regression_adapter(
 
     # 格式化输出
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"

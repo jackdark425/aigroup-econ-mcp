@@ -121,13 +121,13 @@ def dynamic_panel_adapter(
 
     # 3. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_dynamic_panel_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -207,12 +207,12 @@ def panel_diagnostics_adapter(
 
     # 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_panel_diagnostic_result(result, output_format)
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
             OutputFormatter.save_to_file(formatted, save_path)
@@ -263,12 +263,12 @@ def panel_var_adapter(
 
     # 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_panel_var_result(result, output_format)
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
             OutputFormatter.save_to_file(formatted, save_path)

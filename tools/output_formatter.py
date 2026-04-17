@@ -4,8 +4,8 @@
 the adapter layer: ``format_<name>_result(result, format_type)``. Under the
 hood every call routes through a single dispatcher: markdown goes to
 ``MarkdownFormatter`` (which holds the real table-rendering logic); any other
-format falls back to a readable Pydantic-compatible ``str(model.dict())``,
-so passing ``format_type="text"`` no longer silently drops fields.
+format falls back to a readable ``str(model.model_dump())``, so passing
+``format_type="text"`` no longer silently drops fields.
 """
 
 from collections.abc import Callable

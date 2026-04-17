@@ -131,13 +131,13 @@ def arima_adapter(
 
     # 3. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_arima_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -190,13 +190,13 @@ def exp_smoothing_adapter(
 
     # 3. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_exponential_smoothing_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -237,13 +237,13 @@ def garch_adapter(
 
     # 3. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_garch_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -296,13 +296,13 @@ def unit_root_adapter(
 
     # 3. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_unit_root_test_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -385,13 +385,13 @@ def var_svar_adapter(
 
     # 4. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_var_result(result, output_format)
 
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
@@ -474,14 +474,14 @@ def cointegration_adapter(
 
     # 4. 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         if analysis_type in ["engle-granger", "johansen"]:
             try:
                 formatted = OutputFormatter.format_cointegration_result(result, output_format)
 
             except Exception as e:
-                formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+                formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
                 formatted = (
                     f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
@@ -491,7 +491,7 @@ def cointegration_adapter(
                 formatted = OutputFormatter.format_vecm_result(result, output_format)
 
             except Exception as e:
-                formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+                formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
 
                 formatted = (
                     f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
@@ -549,12 +549,12 @@ def structural_break_adapter(
 
     # 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_structural_break_result(result, output_format)
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
             OutputFormatter.save_to_file(formatted, save_path)
@@ -616,12 +616,12 @@ def time_varying_parameter_adapter(
 
     # 格式化输出
     if output_format == "json":
-        return json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
     else:
         try:
             formatted = OutputFormatter.format_time_varying_parameter_result(result, output_format)
         except Exception as e:
-            formatted = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            formatted = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             formatted = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n{formatted}"
         if save_path:
             OutputFormatter.save_to_file(formatted, save_path)

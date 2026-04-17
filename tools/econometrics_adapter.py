@@ -115,7 +115,7 @@ class EconometricsAdapter:
 
         # 3. 格式化输出
         if output_format == "json":
-            json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             if save_path:
                 OutputFormatter.save_to_file(json_result, save_path)
                 return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -130,7 +130,7 @@ class EconometricsAdapter:
                 return formatted
             except Exception as e:
                 # 回退到JSON格式
-                json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+                json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
                 warning = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n"
                 if save_path:
                     OutputFormatter.save_to_file(json_result, save_path)
@@ -169,7 +169,7 @@ class EconometricsAdapter:
 
         # 3. 格式化输出
         if output_format == "json":
-            json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             if save_path:
                 OutputFormatter.save_to_file(json_result, save_path)
                 return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -184,7 +184,7 @@ class EconometricsAdapter:
                 return formatted
             except Exception as e:
                 # 回退到JSON格式
-                json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+                json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
                 warning = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n"
                 if save_path:
                     OutputFormatter.save_to_file(json_result, save_path)
@@ -251,7 +251,7 @@ class EconometricsAdapter:
 
         # 3. 格式化输出
         if output_format == "json":
-            json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+            json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
             if save_path:
                 OutputFormatter.save_to_file(json_result, save_path)
                 return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -266,7 +266,7 @@ class EconometricsAdapter:
                 return formatted
             except Exception as e:
                 # 回退到JSON格式
-                json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+                json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
                 warning = f"警告: {output_format}格式化失败({str(e)})，返回JSON格式\n\n"
                 if save_path:
                     OutputFormatter.save_to_file(json_result, save_path)

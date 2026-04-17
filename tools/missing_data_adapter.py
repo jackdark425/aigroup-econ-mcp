@@ -28,7 +28,7 @@ def simple_imputation_adapter(
     )
 
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
@@ -55,7 +55,7 @@ def multiple_imputation_adapter(
     )
 
     if output_format == "json":
-        json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
+        json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:
             OutputFormatter.save_to_file(json_result, save_path)
             return f"分析完成！结果已保存到: {save_path}\n\n{json_result}"
