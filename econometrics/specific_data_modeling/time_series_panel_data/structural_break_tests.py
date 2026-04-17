@@ -4,6 +4,7 @@
 
 import numpy as np
 from pydantic import BaseModel, Field
+from scipy.stats import f as _f_dist
 
 
 class StructuralBreakResult(BaseModel):
@@ -31,8 +32,6 @@ def chow_test(data: list[float], break_point: int) -> StructuralBreakResult:
     F = ((SSR_r − SSR_u) / k) / (SSR_u / (n − 2k))   with k = 1.
     p = 1 − F_CDF(F, k, n − 2k).
     """
-    from scipy import stats as _sstats
-
     arr = np.asarray(data, dtype=np.float64)
     n = arr.size
     k = 1
@@ -58,7 +57,7 @@ def chow_test(data: list[float], break_point: int) -> StructuralBreakResult:
     f_stat = ((ssr_restricted - ssr_unrestricted) / k) / (
         ssr_unrestricted / denominator_df
     )
-    p_value = float(1 - _sstats.f.cdf(max(f_stat, 0.0), k, denominator_df))
+    p_value = float(1 - _f_dist.cdf(max(f_stat, 0.0), k, denominator_df))
     return StructuralBreakResult(
         test_type="Chow Test",
         test_statistic=float(f_stat),

@@ -50,10 +50,14 @@ def _invoke(name: str, **kwargs: Any) -> dict:
 
 
 def _linear_dgp(
-    n: int = 200, beta: list[float] = None, sigma: float = 0.5, seed: int = 0
+    n: int = 200,
+    beta: list[float] | None = None,
+    sigma: float = 0.5,
+    seed: int = 0,
 ) -> tuple[list[float], list[list[float]]]:
-    """y = const + beta·x + N(0, sigma²). Returns (y_data, x_data)."""
-    beta = beta or [1.0, 2.0]  # [const, slope1]
+    """``y = const + beta·x + N(0, sigma²)``. Returns ``(y_data, x_data)``."""
+    if beta is None:
+        beta = [1.0, 2.0]  # [const, slope1]
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(n, len(beta) - 1))
     y = beta[0] + X @ np.array(beta[1:]) + rng.normal(scale=sigma, size=n)
@@ -68,9 +72,7 @@ def _linear_dgp(
 def test_ols_recovers_known_coefficients() -> None:
     """y = 1 + 2·x₁ − 0.5·x₂ + ε → recovered β close to [1, 2, −0.5]."""
     y, X = _linear_dgp(n=500, beta=[1.0, 2.0, -0.5], sigma=0.3, seed=0)
-    result = _invoke(
-        "basic_parametric_estimation_ols", y_data=y, x_data=X, output_format="json"
-    )
+    result = _invoke("basic_parametric_estimation_ols", y_data=y, x_data=X)
     coefs = result["coefficients"]
     assert len(coefs) == 3
     assert abs(coefs[0] - 1.0) < 0.1, f"const off: {coefs[0]}"
