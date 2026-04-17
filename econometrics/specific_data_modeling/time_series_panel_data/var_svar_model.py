@@ -23,6 +23,10 @@ class VARResult(BaseModel):
     irf: list[float] | None = Field(None, description="脉冲响应函数")
     fevd: list[float] | None = Field(None, description="方差分解")
     n_obs: int = Field(..., description="观测数量")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal fit issues; if non-empty the std_errors/t_values/p_values rows may be sentinel fallbacks, NOT real estimates",
+    )
 
 
 def var_model(
@@ -116,6 +120,9 @@ def var_model(
             pass
 
         # 使用更稳健的参数提取方法
+        fit_warnings: list[str] = []
+        coef_fallback_equations: list[int] = []
+
         for i in range(n_vars):  # 对于每个因变量
             eq_coeffs = []
             eq_std_errors = []
@@ -150,11 +157,13 @@ def var_model(
                 except (IndexError, AttributeError):
                     pass
 
-            # 如果仍然没有找到系数，使用默认值
+            # 如果仍然没有找到系数，使用默认值并记录警告
             if not coefficient_found:
                 eq_coeffs = [0.0] * (n_vars * lags)
+                coef_fallback_equations.append(i)
 
-            # 类似地处理其他统计量
+            # 注意: 当前实现始终为 std_errors/t/p 返回占位值，而非 statsmodels 的真实估计
+            # 下游若需要推断统计量，应直接读取 fitted_model 上的相应属性
             eq_std_errors = [1.0] * len(eq_coeffs)
             eq_t_values = [0.0] * len(eq_coeffs)
             eq_p_values = [1.0] * len(eq_coeffs)
@@ -163,6 +172,16 @@ def var_model(
             std_errors.append(eq_std_errors)
             t_values.append(eq_t_values)
             p_values.append(eq_p_values)
+
+        if coef_fallback_equations:
+            fit_warnings.append(
+                f"coefficients could not be extracted for equations {coef_fallback_equations}; "
+                "used zero placeholders"
+            )
+        fit_warnings.append(
+            "std_errors, t_values, p_values are placeholder (1,0,1) values — this adapter "
+            "does not yet forward the real statsmodels standard errors"
+        )
 
         # 获取信息准则
         aic = float(fitted_model.aic) if hasattr(fitted_model, "aic") else None
@@ -193,6 +212,7 @@ def var_model(
             irf=irf,
             fevd=fevd,
             n_obs=len(data[0]) if data else 0,
+            fit_warnings=fit_warnings,
         )
     except Exception as e:
         # 出现错误时抛出异常

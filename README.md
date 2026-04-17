@@ -116,6 +116,86 @@ Typical usage patterns:
 - ARIMA, GARCH, VAR, and cointegration modeling
 - panel diagnostics and dynamic panel estimation
 
+## Calling tools
+
+Every tool accepts parameters either **inline** (direct lists) or **from a
+file** via `file_path`. The server returns a JSON string; on failure the
+payload has a uniform `{"ok": false, "error": {...}}` shape.
+
+### Inline: OLS regression
+
+```json
+{
+  "name": "basic_parametric_estimation_ols",
+  "arguments": {
+    "y_data": [1.0, 2.1, 2.9, 4.1, 5.0, 5.9, 7.1, 8.0, 8.9, 10.1],
+    "x_data": [[1.0], [2.0], [3.0], [4.0], [5.0],
+               [6.0], [7.0], [8.0], [9.0], [10.0]],
+    "output_format": "json"
+  }
+}
+```
+
+### File-based: causal DID from a CSV
+
+Your CSV first column is the dependent variable (`y_data`), the rest are
+covariates (`x_data`). For domain-specific keys like `treatment`,
+`time_period`, `outcome`, supply a `.json` file:
+
+```json
+// policy.json
+{"treatment": [0,0,1,1,0,0,1,1],
+ "time_period": [0,1,0,1,0,1,0,1],
+ "outcome":    [4.1,4.8,3.9,5.6,4.0,4.7,3.8,5.5]}
+```
+
+```json
+{
+  "name": "causal_difference_in_differences",
+  "arguments": {"file_path": "policy.json", "output_format": "markdown"}
+}
+```
+
+### Time series: ARIMA with forecast
+
+```json
+{
+  "name": "time_series_arima_model",
+  "arguments": {
+    "data": [/* monthly observations */],
+    "order": [1, 1, 1],
+    "forecast_steps": 6,
+    "output_format": "markdown"
+  }
+}
+```
+
+### Interpreting `fit_warnings`
+
+Several models return a `fit_warnings` array. A non-empty value means the
+statistic was a fallback placeholder — treat the associated numbers with
+care. For example, a Cox regression with singular Hessian:
+
+```json
+{
+  "coefficients": [...],
+  "std_errors": [1.0, 1.0, 1.0],
+  "p_values":   [1.0, 1.0, 1.0],
+  "fit_warnings": [
+    "Hessian inversion failed; std_errors are placeholder 1.0 — Z/p values below are not real"
+  ]
+}
+```
+
+Seeing `p=1.0` with no warning means "not significant"; the same with a
+warning means "could not compute".
+
+### Debug mode
+
+Set `AIGROUP_ECON_MCP_DEBUG=1` before launching the server to include
+Python tracebacks inside the structured error payload — useful when
+developing new MCP clients.
+
 ## Project Structure
 
 ```text

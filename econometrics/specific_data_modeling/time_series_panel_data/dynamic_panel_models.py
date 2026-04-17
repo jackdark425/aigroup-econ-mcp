@@ -21,6 +21,10 @@ class DynamicPanelResult(BaseModel):
     n_obs: int = Field(..., description="观测数量")
     n_individuals: int = Field(..., description="个体数量")
     n_time_periods: int = Field(..., description="时间期数")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal fit issues; e.g. the GMM estimator may have fallen back to plain OLS, in which case model_type is also annotated",
+    )
 
 
 def diff_gmm_model(
@@ -285,8 +289,10 @@ def diff_gmm_model(
                     j_statistic = 0.0
                     j_p_value = 1.0
 
-            except (np.linalg.LinAlgError, ValueError):
-                # 如果数值计算失败，使用简化OLS
+            except (np.linalg.LinAlgError, ValueError) as iv_err:
+                # 如果数值计算失败，使用简化OLS — 标记 model_type 与 fit_warnings
+                # 让调用者知道结果不是真正的 GMM 估计
+                _diff_gmm_fallback = str(iv_err)
                 params_ols = np.linalg.lstsq(X_diff, dy, rcond=None)[0]
                 params = params_ols.tolist()
 
@@ -323,8 +329,17 @@ def diff_gmm_model(
                 j_statistic = 0.0
                 j_p_value = 1.0
 
+        _fallback_note: list[str] = []
+        _model_type = "Difference GMM (Arellano-Bond)"
+        if "_diff_gmm_fallback" in locals():
+            _model_type = "Difference GMM (Arellano-Bond) — OLS fallback"
+            _fallback_note.append(
+                f"IV estimation numerically failed ({_diff_gmm_fallback}); results are from "
+                "an OLS fallback on first-differenced data, NOT Arellano-Bond GMM"
+            )
+
         return DynamicPanelResult(
-            model_type="Difference GMM (Arellano-Bond)",
+            model_type=_model_type,
             coefficients=params,
             std_errors=std_errors,
             t_values=t_values,
@@ -337,6 +352,7 @@ def diff_gmm_model(
             n_obs=len(y_data),
             n_individuals=len(set(entity_ids)),
             n_time_periods=len(set(time_periods)),
+            fit_warnings=_fallback_note,
         )
     except Exception as e:
         # 出现错误时抛出异常
@@ -646,8 +662,9 @@ def sys_gmm_model(
                     j_statistic = 0.0
                     j_p_value = 1.0
 
-            except (np.linalg.LinAlgError, ValueError):
-                # 如果数值计算失败，使用简化OLS
+            except (np.linalg.LinAlgError, ValueError) as iv_err:
+                # 如果数值计算失败，使用简化OLS — 同 diff_gmm 的处理
+                _sys_gmm_fallback = str(iv_err)
                 params_ols = np.linalg.lstsq(X_sys, y_sys, rcond=None)[0]
                 params = params_ols.tolist()
 
@@ -684,8 +701,17 @@ def sys_gmm_model(
                 j_statistic = 0.0
                 j_p_value = 1.0
 
+        _fallback_note: list[str] = []
+        _model_type = "System GMM (Blundell-Bond)"
+        if "_sys_gmm_fallback" in locals():
+            _model_type = "System GMM (Blundell-Bond) — OLS fallback"
+            _fallback_note.append(
+                f"IV estimation numerically failed ({_sys_gmm_fallback}); results are from "
+                "an OLS fallback on the stacked level+difference system, NOT Blundell-Bond GMM"
+            )
+
         return DynamicPanelResult(
-            model_type="System GMM (Blundell-Bond)",
+            model_type=_model_type,
             coefficients=params,
             std_errors=std_errors,
             t_values=t_values,
@@ -698,6 +724,7 @@ def sys_gmm_model(
             n_obs=len(y_data),
             n_individuals=len(set(entity_ids)),
             n_time_periods=len(set(time_periods)),
+            fit_warnings=_fallback_note,
         )
     except Exception as e:
         # 出现错误时抛出异常

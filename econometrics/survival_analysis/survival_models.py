@@ -41,6 +41,10 @@ class CoxRegressionResult(BaseModel):
     n_observations: int = Field(..., description="观测数量")
     n_events: int = Field(..., description="事件数量")
     summary: str = Field(..., description="摘要信息")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal fit issues; if non-empty the std_errors / z_scores / p_values are sentinel fallbacks",
+    )
 
 
 def kaplan_meier_estimation_simple(
@@ -195,13 +199,17 @@ def cox_regression_simple(
 
     coefficients = result.x.tolist()
     hazard_ratios = np.exp(result.x).tolist()
+    fit_warnings: list[str] = []
 
     # 简化的标准误（使用Hessian矩阵）
     try:
         hessian_inv = np.linalg.inv(result.hess_inv)
         std_errors = np.sqrt(np.diag(hessian_inv)).tolist()
-    except Exception:
+    except Exception as exc:
         std_errors = [1.0] * k
+        fit_warnings.append(
+            f"Hessian inversion failed; std_errors are placeholder 1.0 — Z/p values below are not real: {exc}"
+        )
 
     # 简化的统计量
     z_scores = [coef / se for coef, se in zip(coefficients, std_errors, strict=False)]
@@ -252,6 +260,9 @@ def cox_regression_simple(
         summary += f"    HR: {hr:.4f} (95% CI: [{lower:.4f}, {upper:.4f}]){sig}\n"
         summary += f"    β: {coef:.4f} (SE: {se:.4f}, Z={z:.2f}, p={p:.4f})\n"
 
+    if fit_warnings:
+        summary += "\n⚠️ fit warnings:\n" + "\n".join(f"  - {w}" for w in fit_warnings)
+
     return CoxRegressionResult(
         coefficients=coefficients,
         hazard_ratios=hazard_ratios,
@@ -268,4 +279,5 @@ def cox_regression_simple(
         n_observations=n,
         n_events=n_events,
         summary=summary,
+        fit_warnings=fit_warnings,
     )
