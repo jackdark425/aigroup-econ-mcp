@@ -15,3 +15,11 @@ Scope of THIS ralph run (5 stories):
   US-003: dedup diff_gmm / sys_gmm (~-200 LOC)
   US-004: thorough bug hunt (remaining silent except + adapter keys)
   US-005: final wheel + protocol e2e + push
+
+---
+Second Ralph session start: 全部修复所有的工具，保证数据准确性
+Start HEAD: 2f57792 (test: +15 correctness tests for ML + microecon)
+
+Baseline: 42 correctness tests cover ~38 of 66 tools. 28 tools need
+ground-truth verification. Goal: every tool either verified mathematically
+or documented as smoke-only.

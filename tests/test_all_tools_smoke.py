@@ -317,7 +317,7 @@ def _fixtures() -> dict[str, dict[str, Any]]:
         "inference_permutation_test": {
             "sample_a": [1.0, 2.0, 3.0, 4.0, 5.0],
             "sample_b": [2.0, 3.0, 4.0, 5.0, 6.0],
-            "test_type": "mean_diff",
+            "test_type": "mean_difference",
             "n_permutations": 100,
         },
         # --- distribution / decomposition -----------------------------------

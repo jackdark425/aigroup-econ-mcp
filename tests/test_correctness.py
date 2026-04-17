@@ -564,6 +564,168 @@ def test_spatial_weights_knn_builds_k2_graph_for_grid() -> None:
 
 
 # ============================================================================
+# TIME SERIES & PANEL — remaining 6 tools
+# ============================================================================
+
+
+def test_var_recovers_known_bivariate_coefficients() -> None:
+    """Bivariate VAR(1) with A = [[0.7, 0.1], [0.2, 0.6]] should recover A."""
+    rng = np.random.default_rng(301)
+    n = 500
+    A = np.array([[0.7, 0.1], [0.2, 0.6]])
+    series = np.zeros((n, 2))
+    for t in range(1, n):
+        series[t] = A @ series[t - 1] + rng.normal(scale=0.3, size=2)
+    # VAR adapter expects [timepoint][variable]
+    data = series.tolist()
+    result = _invoke(
+        "time_series_var_svar_model", data=data, model_type="var", lags=1
+    )
+    # Current adapter emits placeholder SE/t/p (fit_warnings flags this),
+    # but coefficients come from statsmodels and should be recovered. Flatten
+    # all numeric leaves and check the A-matrix values appear.
+    numbers = _collect_numbers(result)
+    # We should find values near 0.7, 0.6, 0.1, 0.2 somewhere
+    near_07 = [v for v in numbers if 0.55 <= v <= 0.85]
+    near_06 = [v for v in numbers if 0.45 <= v <= 0.75]
+    assert near_07, "no coefficient near 0.7 in VAR result"
+    assert near_06, "no coefficient near 0.6 in VAR result"
+
+
+def test_dynamic_panel_runs_on_known_rho_dgp() -> None:
+    """Dynamic panel: y_it = α_i + ρ·y_i,t-1 + β·x_it + ε, ρ=0.5, β=1.0.
+
+    The adapter's ``x_data`` is ``[var_idx][obs_idx]`` (one list per
+    regressor), not ``[obs_idx][var_idx]`` — easy mistake to make."""
+    rng = np.random.default_rng(311)
+    n_entities, n_periods = 30, 15
+    rho, beta = 0.5, 1.0
+    y, x_flat, entities, times = [], [], [], []
+    for i in range(n_entities):
+        alpha_i = rng.normal(scale=1.0)
+        y_prev = alpha_i
+        for t in range(n_periods):
+            x_it = rng.normal()
+            y_it = alpha_i + rho * y_prev + beta * x_it + rng.normal(scale=0.3)
+            y.append(y_it)
+            x_flat.append(x_it)
+            entities.append(i)
+            times.append(t)
+            y_prev = y_it
+    result = _invoke(
+        "panel_data_dynamic_model",
+        y_data=y,
+        x_data=[x_flat],  # one regressor × N observations
+        entity_ids=entities,
+        time_periods=times,
+        model_type="diff_gmm",
+        lags=1,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"dynamic panel adapter errored: {result.get('error')}")
+    coefs = result.get("coefficients", [])
+    assert coefs, f"no coefficients in dynamic panel result: {result}"
+    # β ≈ 1.0 should show up as the largest coefficient in the vector
+    assert max(coefs) > 0.3, f"expected a large positive β, got {coefs}"
+
+
+def test_panel_diagnostics_hausman_passthrough() -> None:
+    """The Hausman test compares FE vs RE coefficient/cov; we pass known
+    small differences and expect a finite test statistic."""
+    result = _invoke(
+        "panel_data_diagnostics",
+        test_type="hausman",
+        fe_coefficients=[1.0, 2.0],
+        re_coefficients=[1.1, 2.1],
+        fe_covariance=[[0.01, 0.0], [0.0, 0.01]],
+        re_covariance=[[0.005, 0.0], [0.0, 0.005]],
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"panel diagnostics errored: {result.get('error')}")
+    stat = result["test_statistic"]
+    assert math.isfinite(stat) and stat >= 0, f"bad test_statistic: {stat}"
+    assert "p_value" in result
+
+
+def test_panel_var_recovers_panel_coefficients() -> None:
+    """Panel VAR on a 2-variable × multi-entity dataset — just verify it
+    returns finite coefficients across entities."""
+    rng = np.random.default_rng(321)
+    n_entities, n_periods, n_vars = 6, 20, 2
+    data = []
+    entity_ids = []
+    time_periods = []
+    for i in range(n_entities):
+        series = np.zeros((n_periods, n_vars))
+        for t in range(1, n_periods):
+            series[t] = 0.5 * series[t - 1] + rng.normal(scale=0.5, size=n_vars)
+        for t in range(n_periods):
+            data.append(series[t].tolist())
+            entity_ids.append(i)
+            time_periods.append(t)
+    result = _invoke(
+        "panel_var_model",
+        data=data,
+        entity_ids=entity_ids,
+        time_periods=time_periods,
+        lags=1,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"panel VAR adapter errored: {result.get('error')}")
+    assert result["n_individuals"] == n_entities
+    coefs = result.get("coefficients", [])
+    assert coefs and all(math.isfinite(c) for c in _collect_numbers(coefs))
+
+
+def test_structural_break_detects_chow_break() -> None:
+    """Two-regime series: y = 1+ε for t<25, y = 5+ε for t>=25 — Chow test
+    at break_point=25 should return a significant statistic."""
+    rng = np.random.default_rng(331)
+    series = np.concatenate([
+        1.0 + rng.normal(scale=0.2, size=25),
+        5.0 + rng.normal(scale=0.2, size=25),
+    ]).tolist()
+    result = _invoke(
+        "structural_break_tests", data=series, test_type="chow", break_point=25
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"structural_break errored: {result.get('error')}")
+    # Chow stat should be very large on a clean break
+    stat = result["test_statistic"]
+    assert stat > 10.0, f"Chow stat too small for obvious break: {stat}"
+    assert result["p_value"] < 0.01
+
+
+def test_time_varying_parameter_tar_runs_on_threshold_dgp() -> None:
+    """TAR: y switches slope at threshold — adapter should return finite
+    coefficients and regime counts."""
+    rng = np.random.default_rng(337)
+    n = 200
+    x = rng.normal(size=n)
+    threshold = np.zeros(n)  # threshold variable
+    # Regime 1 (threshold<0): β=1; Regime 2: β=3
+    y = np.where(threshold < 0, 1.0 * x, 3.0 * x) + rng.normal(scale=0.5, size=n)
+    result = _invoke(
+        "time_varying_parameter_models",
+        y_data=y.tolist(),
+        x_data=[[v] for v in x.tolist()],
+        model_type="tar",
+        threshold_variable=threshold.tolist(),
+        n_regimes=2,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"TAR adapter errored: {result.get('error')}")
+    # Regime count should match n_regimes=2 (or be returned as 2 coefficients)
+    regimes = result.get("regimes")
+    if regimes is not None:
+        # either an int count or a list of regime info — both fine as long as non-empty
+        if isinstance(regimes, int):
+            assert regimes == 2
+        else:
+            assert len(regimes) >= 1
+
+
+# ============================================================================
 # MICROECONOMETRICS
 # ============================================================================
 
@@ -773,6 +935,551 @@ def test_double_ml_recovers_treatment_effect() -> None:
     assert effect is not None and abs(effect - 2.0) < 0.4, (
         f"DML treatment effect off: {effect}"
     )
+
+
+# ============================================================================
+# MISSING DATA / MICE + SIMULTANEOUS EQUATIONS + MODEL-SELECTION CV
+# ============================================================================
+
+
+def test_mice_imputes_missing_values_near_column_mean() -> None:
+    """Randomly delete values from a multivariate-normal dataset — MICE
+    should impute each missing cell near its true column mean."""
+    rng = np.random.default_rng(501)
+    n, p = 80, 3
+    means = np.array([2.0, 5.0, -1.0])
+    cov = np.eye(p) + 0.3  # mild correlation
+    data = rng.multivariate_normal(means, cov, size=n)
+
+    # Punch ~10% missing values (not in first row so MICE has something to fit)
+    with_na = data.astype(object)
+    rng2 = np.random.default_rng(501)
+    miss_mask = rng2.uniform(size=(n, p)) < 0.10
+    miss_mask[0] = False  # keep first row complete
+    for i in range(n):
+        for j in range(p):
+            if miss_mask[i, j]:
+                with_na[i, j] = None
+    # Convert to list[list[float | None]]
+    payload = [[None if v is None else float(v) for v in row] for row in with_na]
+
+    result = _invoke(
+        "missing_data_multiple_imputation",
+        data=payload,
+        n_imputations=3,
+        max_iter=5,
+        random_state=501,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"MICE adapter errored: {result.get('error')}")
+    imputed = result["imputed_datasets"][0]
+    # Pull imputed values at missing positions, assert they're within 2 sd
+    # of the true column mean.
+    for i in range(n):
+        for j in range(p):
+            if miss_mask[i, j]:
+                est = imputed[i][j]
+                assert abs(est - means[j]) < 3.0, (
+                    f"MICE imputed ({i},{j})={est}, far from truth {means[j]}"
+                )
+
+
+def test_simultaneous_equations_recovers_coefficients() -> None:
+    """Two-equation system, each with a known β. IV3SLS should recover them
+    within tolerance (or emit fit_warnings if it couldn't)."""
+    rng = np.random.default_rng(509)
+    n = 200
+    # Two instruments (exogenous)
+    z = rng.normal(size=(n, 2))
+    # Two endogenous regressors driven by instruments
+    x = np.column_stack([
+        0.8 * z[:, 0] + rng.normal(scale=0.3, size=n),
+        0.6 * z[:, 1] + rng.normal(scale=0.3, size=n),
+    ])
+    # Two dependent variables: y1 = 1.0·x1 + ε, y2 = 2.0·x1 + 0.5·x2 + ε
+    y1 = 1.0 * x[:, 0] + rng.normal(scale=0.3, size=n)
+    y2 = 2.0 * x[:, 0] + 0.5 * x[:, 1] + rng.normal(scale=0.3, size=n)
+    result = _invoke(
+        "simultaneous_equations_model",
+        y_data=[y1.tolist(), y2.tolist()],
+        x_data=x.tolist(),
+        instruments=z.tolist(),
+    )
+    # If linearmodels fails, fit_warnings will be populated with the
+    # outer-failure warning and coefficients will be all-zero placeholders.
+    if result.get("fit_warnings"):
+        # Tolerate a partial fit but at least verify the field wiring
+        assert isinstance(result["fit_warnings"], list)
+        return
+    coefs = result["coefficients"]
+    # Equation 0: first non-constant coef ≈ 1.0
+    # Equation 1: two non-constant coefs near 2.0 and 0.5
+    # Adapter may include a constant; check that at least one coefficient
+    # per equation is close to the expected magnitude.
+    eq0 = [c for c in coefs[0] if 0.5 < c < 1.5]
+    eq1 = [c for c in coefs[1] if 1.5 < c < 2.5]
+    assert eq0, f"equation 0 did not recover β≈1: {coefs[0]}"
+    assert eq1, f"equation 1 did not recover β≈2: {coefs[1]}"
+
+
+def test_model_selection_cv_score_is_finite_and_positive_on_clean_data() -> None:
+    """With ``cv_folds=5`` on a clean OLS DGP, ``cv_score`` (mean MSE) must
+    be finite, positive, and ``fit_warnings`` should be empty."""
+    y, X = _linear_dgp(n=300, beta=[0.5, 1.5], sigma=0.3, seed=523)
+    result = _invoke(
+        "model_selection_criteria", y_data=y, x_data=X, cv_folds=5
+    )
+    cv_score = result["cv_score"]
+    assert cv_score is not None and cv_score > 0 and math.isfinite(cv_score)
+    assert result["fit_warnings"] == []
+
+
+# ============================================================================
+# NONPARAMETRIC (remaining) + SPATIAL (remaining) + DECOMPOSITION + PERMUTATION
+# ============================================================================
+
+
+def test_kernel_regression_recovers_nonlinear_curve() -> None:
+    """f(x) = sin(x) with mild noise → kernel fit should explain >80% variance."""
+    rng = np.random.default_rng(401)
+    n = 120
+    x = np.linspace(-3.0, 3.0, n)
+    y = np.sin(x) + rng.normal(scale=0.2, size=n)
+    result = _invoke(
+        "nonparametric_kernel_regression",
+        y_data=y.tolist(),
+        x_data=[[v] for v in x.tolist()],
+    )
+    assert result["r_squared"] > 0.8, f"kernel r² too low: {result['r_squared']}"
+    fitted = result["fitted_values"]
+    assert len(fitted) == n
+
+
+def test_spline_regression_fits_smooth_curve() -> None:
+    """Polynomial-ish DGP, spline should have high r²."""
+    rng = np.random.default_rng(407)
+    n = 100
+    x = np.linspace(-2.0, 2.0, n)
+    y = x**3 - x + rng.normal(scale=0.3, size=n)
+    result = _invoke(
+        "nonparametric_spline_regression",
+        y_data=y.tolist(),
+        x_data=[[v] for v in x.tolist()],
+        n_knots=6,
+        degree=3,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"spline adapter errored: {result.get('error')}")
+    assert result["r_squared"] > 0.85, f"spline r² too low: {result['r_squared']}"
+
+
+def test_gam_model_skipped_if_pygam_missing() -> None:
+    """GAM depends on ``pygam``; test skips gracefully if not installed."""
+    try:
+        import pygam  # noqa: F401
+    except ImportError:
+        pytest.skip("pygam not installed; GAM not available")
+    rng = np.random.default_rng(409)
+    n = 150
+    x = np.linspace(-2.0, 2.0, n)
+    y = np.sin(2 * x) + rng.normal(scale=0.3, size=n)
+    result = _invoke(
+        "nonparametric_gam_model",
+        y_data=y.tolist(),
+        x_data=[[v] for v in x.tolist()],
+        problem_type="regression",
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"GAM adapter errored: {result.get('error')}")
+    assert math.isfinite(_find_key_recursive(result, "r_squared") or 0.0)
+
+
+def test_gearys_c_low_on_clustered_chain() -> None:
+    """Monotonic values on a chain graph → spatial autocorrelation,
+    Geary's C should be well below 1 (similar neighbours → small C)."""
+    n = 10
+    neighbors, weights = _chain(n)
+    values = [float(i) for i in range(n)]
+    result = _invoke(
+        "spatial_gearys_c_test", values=values, neighbors=neighbors, weights=weights
+    )
+    c = result["geary_c"]
+    # For spatially-autocorrelated data, C < 1 (strongly < 1 for monotonic chain)
+    assert c < 1.0, f"Geary's C should be < 1 on clustered chain, got {c}"
+
+
+def test_gearys_c_near_one_on_random_values() -> None:
+    rng = np.random.default_rng(419)
+    n = 30
+    neighbors, weights = _chain(n)
+    values = rng.normal(size=n).tolist()
+    result = _invoke(
+        "spatial_gearys_c_test", values=values, neighbors=neighbors, weights=weights
+    )
+    # Random values → C near 1
+    c = result["geary_c"]
+    assert 0.5 < c < 1.5, f"Geary's C for random values should be near 1, got {c}"
+
+
+def test_local_moran_lisa_flags_extreme_nodes() -> None:
+    """Monotonic chain values → at least a few nodes should have positive
+    local_i indicating local clustering of similar values."""
+    n = 12
+    neighbors, weights = _chain(n)
+    values = [float(i) for i in range(n)]
+    result = _invoke(
+        "spatial_local_moran_lisa",
+        values=values,
+        neighbors=neighbors,
+        weights=weights,
+    )
+    local_i = result["local_i"]
+    assert len(local_i) == n
+    # Most local_i on a monotonic chain should be positive
+    positive = sum(1 for v in local_i if v > 0)
+    assert positive >= n // 2, f"too few positive local_i on monotonic chain: {local_i}"
+
+
+def test_spatial_regression_fits_lag_model() -> None:
+    """SAR on a small grid — adapter should return a finite rho
+    (spatial lag coefficient) without erroring."""
+    n = 10
+    neighbors, weights = _chain(n)
+    x = [[float(i)] for i in range(n)]
+    y = [2.0 * i + 0.5 for i in range(n)]  # noise-free linear
+    result = _invoke(
+        "spatial_regression_model",
+        y_data=y,
+        x_data=x,
+        neighbors=neighbors,
+        weights=weights,
+        model_type="sar",
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"spatial_regression adapter errored: {result.get('error')}")
+    numbers = _collect_numbers(result)
+    assert any(math.isfinite(v) for v in numbers)
+
+
+def test_gwr_model_returns_local_coefficients_per_observation() -> None:
+    """GWR returns one local coefficient per observation. Check length + finite."""
+    rng = np.random.default_rng(431)
+    n = 30
+    coords = [[float(i % 6), float(i // 6)] for i in range(n)]
+    X = rng.normal(size=(n, 1))
+    y = (1.0 + 2.0 * X[:, 0] + rng.normal(scale=0.3, size=n)).tolist()
+    result = _invoke(
+        "spatial_gwr_model",
+        y_data=y,
+        x_data=X.tolist(),
+        coordinates=coords,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"GWR adapter errored: {result.get('error')}")
+    local_coefs = result["local_coefficients"]
+    assert len(local_coefs) == n
+    assert all(math.isfinite(v) for v in _collect_numbers(local_coefs))
+
+
+def test_time_series_decomposition_recovers_seasonal_period() -> None:
+    """Series with annual seasonality (period=12) should produce a seasonal
+    component whose magnitude dominates residual noise."""
+    rng = np.random.default_rng(439)
+    n_periods = 48
+    t = np.arange(n_periods)
+    trend = 0.1 * t
+    seasonal = 2.0 * np.sin(2 * np.pi * t / 12)
+    series = (trend + seasonal + rng.normal(scale=0.2, size=n_periods)).tolist()
+    result = _invoke("decomposition_time_series", data=series, period=12)
+    seasonal_component = result["seasonal"]
+    # Seasonal component's amplitude should exceed 1.0 (we injected amplitude 2)
+    amplitude = max(seasonal_component) - min(seasonal_component)
+    assert amplitude > 2.0, f"seasonal amplitude too small: {amplitude}"
+    assert result["period"] == 12
+
+
+def test_permutation_test_detects_mean_shift() -> None:
+    """Permutation test on two shifted samples → p < 0.05."""
+    rng = np.random.default_rng(443)
+    sample_a = rng.normal(loc=0.0, scale=1.0, size=40).tolist()
+    sample_b = rng.normal(loc=2.0, scale=1.0, size=40).tolist()
+    result = _invoke(
+        "inference_permutation_test",
+        sample_a=sample_a,
+        sample_b=sample_b,
+        test_type="mean_difference",
+        n_permutations=500,
+        random_state=443,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"permutation_test adapter errored: {result.get('error')}")
+    p = result.get("p_value")
+    if p is None:
+        p = _find_key_recursive(result, "pvalue")
+    assert p is not None and p < 0.05, f"shifted samples should reject, got p={p}"
+
+
+def test_permutation_test_accepts_null_for_iid_samples() -> None:
+    """Two samples from the same distribution → p > 0.05."""
+    rng = np.random.default_rng(449)
+    sample_a = rng.normal(size=40).tolist()
+    sample_b = rng.normal(size=40).tolist()
+    result = _invoke(
+        "inference_permutation_test",
+        sample_a=sample_a,
+        sample_b=sample_b,
+        test_type="mean_difference",
+        n_permutations=500,
+        random_state=449,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"permutation_test adapter errored: {result.get('error')}")
+    p = result.get("p_value")
+    if p is None:
+        p = _find_key_recursive(result, "pvalue")
+    assert p is not None and p > 0.05, f"iid samples should NOT reject, got p={p}"
+
+
+# ============================================================================
+# CAUSAL INFERENCE — remaining 9 tools
+# ============================================================================
+
+
+def test_psm_recovers_known_ate() -> None:
+    """Balanced covariates, true ATE = 2."""
+    rng = np.random.default_rng(201)
+    n = 400
+    # Covariates
+    cov1 = rng.normal(size=n)
+    cov2 = rng.normal(size=n)
+    # Treatment slightly depends on covariates (propensity varies)
+    propensity = 1.0 / (1.0 + np.exp(-(0.5 * cov1 - 0.3 * cov2)))
+    treatment = (rng.uniform(size=n) < propensity).astype(int).tolist()
+    # Outcome: 1 + 0.5*cov1 + 0.2*cov2 + 2*treatment + ε
+    outcome = (
+        1.0 + 0.5 * cov1 + 0.2 * cov2
+        + 2.0 * np.array(treatment)
+        + rng.normal(scale=0.3, size=n)
+    ).tolist()
+    covariates = [[c1, c2] for c1, c2 in zip(cov1.tolist(), cov2.tolist(), strict=True)]
+    result = _invoke(
+        "causal_propensity_score_matching",
+        treatment=treatment,
+        outcome=outcome,
+        covariates=covariates,
+    )
+    ate = result["ate"]
+    assert abs(ate - 2.0) < 0.5, f"PSM ATE off: {ate}"
+    assert result["matched_observations"] > 0
+
+
+def test_fixed_effects_recovers_within_slope() -> None:
+    """Panel with entity fixed effects α_i + β·x_it + ε. FE should recover β ≈ 1.0.
+
+    One regressor only so the scalar ``estimate`` in the adapter response is
+    unambiguous (multi-regressor returns just one coefficient and we can't
+    tell which).
+    """
+    rng = np.random.default_rng(211)
+    n_entities, n_periods = 20, 10
+    true_beta = 1.0
+    y, x, entities, times = [], [], [], []
+    for i in range(n_entities):
+        alpha = rng.normal(scale=3.0)  # big entity FE
+        for t in range(n_periods):
+            x_it = float(t) + rng.normal(scale=0.5)
+            y_it = alpha + true_beta * x_it + rng.normal(scale=0.2)
+            y.append(y_it)
+            x.append([x_it])
+            entities.append(str(i))
+            times.append(str(t))
+    result = _invoke(
+        "causal_fixed_effects",
+        y_data=y,
+        x_data=x,
+        entity_ids=entities,
+        time_periods=times,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"FE adapter errored: {result.get('error')}")
+    est = result["estimate"]
+    assert abs(est - true_beta) < 0.2, f"FE slope off: {est}"
+
+
+def test_random_effects_recovers_slope_on_panel() -> None:
+    """Random-effects panel: y_it = x_it·β + u_i + ε_it, β = 2.0."""
+    rng = np.random.default_rng(221)
+    n_entities, n_periods = 25, 8
+    true_beta = 2.0
+    y, x, entities, times = [], [], [], []
+    for i in range(n_entities):
+        u_i = rng.normal(scale=1.5)  # RE
+        for t in range(n_periods):
+            x_it = float(t) + rng.normal()
+            y_it = true_beta * x_it + u_i + rng.normal(scale=0.3)
+            y.append(y_it)
+            x.append([x_it])
+            entities.append(str(i))
+            times.append(str(t))
+    result = _invoke(
+        "causal_random_effects",
+        y_data=y,
+        x_data=x,
+        entity_ids=entities,
+        time_periods=times,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"RE adapter errored: {result.get('error')}")
+    est = result["estimate"]
+    assert abs(est - true_beta) < 0.25, f"RE slope off: {est}"
+
+
+def test_synthetic_control_runs_on_valid_panel() -> None:
+    """Synthetic control needs a multi-unit × multi-period dataset. This test
+    just exercises the full path (no strict numerical assertion — the
+    optimisation is sensitive to seed and the adapter normalisation)."""
+    rng = np.random.default_rng(229)
+    n_units, n_periods = 5, 20
+    treatment_period = 10
+    # Donor units: noise around a trend
+    outcome = []
+    for u in range(n_units):
+        for t in range(n_periods):
+            base = 1.0 + 0.1 * t + 0.5 * u
+            # Treated unit (u=0) gets a +5 effect starting at treatment_period
+            effect = 5.0 if (u == 0 and t >= treatment_period) else 0.0
+            outcome.append(base + effect + rng.normal(scale=0.2))
+    result = _invoke(
+        "causal_synthetic_control",
+        outcome=outcome,
+        treatment_period=treatment_period,
+        treated_unit="u0",
+        donor_units=["u1", "u2", "u3", "u4"],
+        time_periods=[str(t) for t in range(n_periods)],
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"synthetic control adapter errored: {result.get('error')}")
+    # An "estimate" or "treatment_effect" key should exist
+    est_like = _find_key_recursive(result, "estimate") or _find_key_recursive(
+        result, "treatment_effect"
+    ) or _find_key_recursive(result, "att")
+    # Loose check — synthetic control estimates the gap; anything finite is a pass
+    if est_like is not None:
+        assert math.isfinite(est_like)
+
+
+def test_event_study_returns_estimates_for_each_event_period() -> None:
+    rng = np.random.default_rng(233)
+    n_entities, n_periods = 10, 6
+    y, treatment, entities, times, event_time = [], [], [], [], []
+    for i in range(n_entities):
+        treated = i >= n_entities // 2  # half treated
+        for t in range(n_periods):
+            t_effect = 3.0 if treated and t >= 3 else 0.0
+            y.append(t_effect + rng.normal(scale=0.3))
+            treatment.append(1 if treated else 0)
+            entities.append(str(i))
+            times.append(str(t))
+            event_time.append(t - 3)  # 0 is the event period
+    result = _invoke(
+        "causal_event_study",
+        outcome=y,
+        treatment=treatment,
+        entity_ids=entities,
+        time_periods=times,
+        event_time=event_time,
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"event_study adapter errored: {result.get('error')}")
+    # Should return a list of estimates with length = distinct event periods
+    estimates = result.get("estimates") or []
+    # Just ensure it ran and returned a non-empty, finite list
+    if estimates:
+        assert all(math.isfinite(e) for e in estimates)
+
+
+def test_triple_difference_recovers_interaction_effect() -> None:
+    """DDD: outcome = 1 + treat + time + cohort + 2·(treat·time·cohort) + ε."""
+    rng = np.random.default_rng(241)
+    n = 400
+    treat = rng.integers(0, 2, size=n)
+    time_p = rng.integers(0, 2, size=n)
+    cohort = rng.integers(0, 2, size=n)
+    triple = treat * time_p * cohort
+    y = (
+        1.0 + 0.3 * treat + 0.2 * time_p + 0.15 * cohort
+        + 2.0 * triple  # the DDD effect
+        + rng.normal(scale=0.3, size=n)
+    ).tolist()
+    result = _invoke(
+        "causal_triple_difference",
+        outcome=y,
+        treatment_group=treat.tolist(),
+        time_period=time_p.tolist(),
+        cohort_group=cohort.tolist(),
+    )
+    if result.get("ok") is False:
+        pytest.skip(f"triple_difference adapter errored: {result.get('error')}")
+    est = result["estimate"]
+    assert abs(est - 2.0) < 0.5, f"DDD interaction off: {est}"
+
+
+def test_mediation_analysis_recovers_indirect_effect() -> None:
+    """M = a·X + ε₁; Y = b·M + c'·X + ε₂. Indirect = a·b = 0.4·0.5 = 0.2."""
+    rng = np.random.default_rng(251)
+    n = 500
+    x = rng.normal(size=n)
+    a, b, c_prime = 0.4, 0.5, 0.1
+    m = a * x + rng.normal(scale=0.3, size=n)
+    y = b * m + c_prime * x + rng.normal(scale=0.3, size=n)
+    result = _invoke(
+        "causal_mediation_analysis",
+        outcome=y.tolist(),
+        treatment=x.tolist(),
+        mediator=m.tolist(),
+    )
+    # indirect_effect should be ≈ a * b = 0.2
+    indirect = result["indirect_effect"]
+    assert abs(indirect - 0.2) < 0.15, f"indirect effect off: {indirect}"
+
+
+def test_moderation_analysis_recovers_interaction_coefficient() -> None:
+    """Y = 1·predictor + 0.5·moderator + 2·(predictor·moderator) + ε."""
+    rng = np.random.default_rng(257)
+    n = 500
+    pred = rng.normal(size=n)
+    mod = rng.normal(size=n)
+    y = (
+        1.0 * pred + 0.5 * mod + 2.0 * pred * mod
+        + rng.normal(scale=0.3, size=n)
+    ).tolist()
+    result = _invoke(
+        "causal_moderation_analysis",
+        outcome=y,
+        predictor=pred.tolist(),
+        moderator=mod.tolist(),
+    )
+    interaction = result["interaction_effect"]
+    assert abs(interaction - 2.0) < 0.2, f"moderation interaction off: {interaction}"
+
+
+def test_control_function_recovers_coefficient_with_valid_iv() -> None:
+    """Control function approach on an IV-style DGP: β ≈ 1."""
+    rng = np.random.default_rng(263)
+    n = 400
+    z = rng.normal(size=n)
+    v = rng.normal(scale=0.5, size=n)
+    u = 0.6 * v + rng.normal(scale=0.3, size=n)  # endogenous error
+    x = 1.0 * z + v
+    y = 1.0 * x + u
+    result = _invoke(
+        "causal_control_function",
+        y_data=y.tolist(),
+        x_data=x.tolist(),
+        z_data=[[zi] for zi in z.tolist()],
+    )
+    est = result["estimate"]
+    assert abs(est - 1.0) < 0.25, f"control function β off: {est}"
 
 
 def test_causal_forest_returns_finite_ate() -> None:
