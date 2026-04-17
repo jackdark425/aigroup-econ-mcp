@@ -24,7 +24,7 @@ It covers:
 
 - **66 professional tools** across core econometrics domains
 - **Multiple input formats** including CSV, JSON, TXT, and Excel
-- **Multiple output formats** including JSON, Markdown, HTML, LaTeX, and text
+- **Multiple output formats** including JSON, Markdown, and text
 - **Support for MCP clients** such as RooCode, Claude-compatible tools, and other MCP hosts
 - **Broad method coverage** from OLS and IV to ARIMA, GARCH, GAM, and causal forests
 - **Designed for research and applied analysis** rather than narrow single-task workflows
@@ -103,11 +103,9 @@ Typical usage patterns:
 
 ### Supported output formats
 
-- `json`
-- `markdown`
-- `html`
-- `latex`
-- `text`
+- `json` (default — structured Pydantic result serialized)
+- `markdown` (human-readable tables and coefficient stars)
+- `text` (compact `str(model.model_dump())` fallback)
 
 ## Example Use Cases
 

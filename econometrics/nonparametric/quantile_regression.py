@@ -30,6 +30,10 @@ class QuantileRegressionResult(BaseModel):
     pseudo_r_squared: float = Field(..., description="伪R²")
     n_observations: int = Field(..., description="观测数量")
     summary: str = Field(..., description="摘要信息")
+    fit_warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal fit issues; if non-empty the reported SEs / p-values / R² may be sentinel fallbacks, NOT real estimates",
+    )
 
 
 class MultiQuantileResult(BaseModel):
@@ -108,22 +112,27 @@ def quantile_regression(
 
     # 提取结果
     coefficients = results.params.tolist()
+    fit_warnings: list[str] = []
 
     # 标准误（使用稳健标准误）
     try:
         # 尝试使用稳健标准误
         std_errors = results.bse.tolist()
-    except Exception:
-        # 如果失败，使用常规标准误
+    except Exception as exc:
+        # 如果失败，使用零占位；记录警告使调用者可发现
         std_errors = [0.0] * len(coefficients)
+        fit_warnings.append(f"std_errors unavailable, using zeros: {exc}")
 
     # t统计量和p值
     try:
         t_values = results.tvalues.tolist()
         p_values = results.pvalues.tolist()
-    except Exception:
+    except Exception as exc:
         t_values = [0.0] * len(coefficients)
         p_values = [1.0] * len(coefficients)
+        fit_warnings.append(
+            f"t/p values unavailable, using (0, 1) placeholders — NOT a null result: {exc}"
+        )
 
     # 置信区间
     try:
@@ -131,15 +140,17 @@ def quantile_regression(
         conf_int = results.conf_int(alpha=alpha)
         conf_int_lower = conf_int.iloc[:, 0].tolist()
         conf_int_upper = conf_int.iloc[:, 1].tolist()
-    except Exception:
+    except Exception as exc:
         conf_int_lower = [c - 1.96 * se for c, se in zip(coefficients, std_errors, strict=False)]
         conf_int_upper = [c + 1.96 * se for c, se in zip(coefficients, std_errors, strict=False)]
+        fit_warnings.append(f"confidence intervals approximated from normal quantile: {exc}")
 
     # 伪R²
     try:
         pseudo_r_squared = float(results.prsquared)
-    except Exception:
+    except Exception as exc:
         pseudo_r_squared = 0.0
+        fit_warnings.append(f"pseudo R² unavailable: {exc}")
 
     # 生成摘要
     summary = f"""分位数回归分析:
@@ -156,6 +167,9 @@ def quantile_regression(
         sig = "***" if p < 0.01 else "**" if p < 0.05 else "*" if p < 0.10 else ""
         summary += f"  {name}: {coef:.4f} (SE: {se:.4f}, t={t:.2f}, p={p:.4f}){sig}\n"
 
+    if fit_warnings:
+        summary += "\n⚠️ fit warnings:\n" + "\n".join(f"  - {w}" for w in fit_warnings)
+
     return QuantileRegressionResult(
         quantile=quantile,
         coefficients=coefficients,
@@ -168,6 +182,7 @@ def quantile_regression(
         pseudo_r_squared=pseudo_r_squared,
         n_observations=n,
         summary=summary,
+        fit_warnings=fit_warnings,
     )
 
 

@@ -170,3 +170,33 @@ def test_every_group_has_at_least_one_tool() -> None:
     groups = REGISTRY.groups()
     for name, specs in groups.items():
         assert specs, f"group {name!r} has no tools"
+
+
+def test_ml_adapter_file_path_does_not_silently_drop_data(tmp_path) -> None:
+    """Regression guard for the pre-71fa125 bug where the ML adapter read
+    ``data.get("X")`` — a key that ``DataLoader.load_from_file`` never
+    returns. All 8 ML tools silently saw ``X_data = None`` and raised
+    a misleading ``X_data and y_data must be provided`` error.
+
+    After the fix, file_path input must succeed in finding the data.
+    We don't require the model fit to succeed (xgboost may be unavailable
+    locally), only that the validation stage recognizes the file input.
+    """
+    import csv
+
+    csv_path = tmp_path / "ml_input.csv"
+    with csv_path.open("w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["y", "x1", "x2"])
+        # 20 rows — enough that most ML fits have a chance to run
+        for i in range(20):
+            writer.writerow([i % 2, float(i), float(i * 2)])
+
+    result = _invoke("ml_random_forest", file_path=str(csv_path))
+    assert isinstance(result, dict)
+    # The specific message the bug produced was "X_data and y_data must be
+    # provided". If that string appears in any error field, the bug is back.
+    body = json.dumps(result)
+    assert "X_data and y_data must be provided" not in body, (
+        "ML file_path regression: adapter can no longer read the uploaded file"
+    )

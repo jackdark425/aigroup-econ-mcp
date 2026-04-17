@@ -92,8 +92,8 @@ def random_forest_adapter(
     """Random Forest analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
-        y_data = data.get("y", data.get("target"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
+        y_data = data.get("y_data", data.get("y", data.get("target")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -152,8 +152,8 @@ def gradient_boosting_adapter(
     """Gradient Boosting analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
-        y_data = data.get("y", data.get("target"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
+        y_data = data.get("y_data", data.get("y", data.get("target")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -216,8 +216,8 @@ def svm_adapter(
     """SVM analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
-        y_data = data.get("y", data.get("target"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
+        y_data = data.get("y_data", data.get("y", data.get("target")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -283,8 +283,8 @@ def neural_network_adapter(
     """Neural Network analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
-        y_data = data.get("y", data.get("target"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
+        y_data = data.get("y_data", data.get("y", data.get("target")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -358,7 +358,7 @@ def kmeans_clustering_adapter(
     """K-Means Clustering analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -414,7 +414,7 @@ def hierarchical_clustering_adapter(
     """Hierarchical Clustering analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
         if feature_names is None:
             feature_names = data.get("feature_names")
 
@@ -456,7 +456,7 @@ def double_ml_adapter(
     """Double Machine Learning analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
         y_data = data.get("y", data.get("outcome"))
         d_data = data.get("d", data.get("treatment"))
         if feature_names is None:
@@ -511,7 +511,7 @@ def causal_forest_adapter(
     """Causal Forest analysis adapter"""
     if file_path:
         data = DataLoader.load_from_file(file_path)
-        X_data = data.get("X", data.get("features"))
+        X_data = data.get("x_data", data.get("X", data.get("features")))
         y_data = data.get("y", data.get("outcome"))
         w_data = data.get("w", data.get("treatment"))
         if feature_names is None:
