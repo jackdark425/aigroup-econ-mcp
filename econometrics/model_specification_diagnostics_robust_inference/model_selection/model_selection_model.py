@@ -204,8 +204,7 @@ def _cross_validation(
         return None, warnings
 
     if folds == -1 or folds >= n:
-        # 留一法交叉验证
-        folds = n
+        folds = n  # leave-one-out
 
     if folds <= 1:
         warnings.append(f"cv_folds resolved to {folds}; need >=2 folds, skipping")
@@ -214,7 +213,6 @@ def _cross_validation(
         warnings.append(f"y length ({n}) != X rows ({X.shape[0]}); CV aborted")
         return None, warnings
 
-    # 检查是否有足够的数据进行训练和测试
     if X.shape[0] < X.shape[1]:
         warnings.append(
             f"underdetermined system (n_obs={X.shape[0]} < n_features={X.shape[1]}); "
@@ -222,12 +220,9 @@ def _cross_validation(
         )
         return None, warnings
 
-    # 创建折叠索引
-    indices = np.arange(n)
-    np.random.seed(42)  # 固定随机种子以确保结果可重现
-    np.random.shuffle(indices)
+    rng = np.random.default_rng(42)
+    indices = rng.permutation(n)
 
-    # 计算每折的大小
     fold_sizes = np.full(folds, n // folds)
     fold_sizes[: n % folds] += 1
 
@@ -236,81 +231,60 @@ def _cross_validation(
 
     for fold_index, fold_size in enumerate(fold_sizes):
         start, stop = current, current + fold_size
+        current = stop
         test_idx = indices[start:stop]
         train_idx = np.concatenate([indices[:start], indices[stop:]])
-
-        # 分割数据
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
 
         try:
-            # 检查是否有足够的数据进行训练和测试
             if X_train.shape[0] < X_train.shape[1] or X_train.shape[0] == 0 or X_test.shape[0] == 0:
                 warnings.append(
                     f"fold {fold_index}: degenerate train/test split "
                     f"(train={X_train.shape}, test={X_test.shape}), skipped"
                 )
-                current = stop
                 continue
 
-            # 训练模型，使用带正则化的求解方法
             try:
-                # 使用statsmodels进行更稳定的回归
-                train_model = sm.OLS(y_train, X_train)
-                train_results = train_model.fit()
-                beta_train = train_results.params
+                beta_train = sm.OLS(y_train, X_train).fit().params
             except Exception:
-                # 如果statsmodels失败，使用numpy的最小二乘法
-                # 添加正则化防止矩阵奇异
                 XtX = X_train.T @ X_train
-                if XtX.shape[0] > 0:
-                    # 添加一个小的正则化项
-                    reg_param = (
-                        1e-10 * np.trace(XtX) / XtX.shape[0]
-                        if np.trace(XtX) > 0 and XtX.shape[0] > 0
-                        else 1e-10
-                    )
-                    XtX_reg = XtX + reg_param * np.eye(XtX.shape[0])
-                    try:
-                        beta_train = np.linalg.solve(XtX_reg, X_train.T @ y_train)
-                    except np.linalg.LinAlgError:
-                        # 如果仍然失败，使用伪逆
-                        beta_train = np.linalg.pinv(XtX_reg) @ X_train.T @ y_train
-                else:
+                if XtX.shape[0] == 0:
                     warnings.append(
                         f"fold {fold_index}: empty XtX matrix during regularized fit, skipped"
                     )
-                    current = stop
                     continue
+                # Tiny ridge to ward off singularity; fall back to pinv if it still trips.
+                reg_param = (
+                    1e-10 * np.trace(XtX) / XtX.shape[0]
+                    if np.trace(XtX) > 0
+                    else 1e-10
+                )
+                XtX_reg = XtX + reg_param * np.eye(XtX.shape[0])
+                try:
+                    beta_train = np.linalg.solve(XtX_reg, X_train.T @ y_train)
+                except np.linalg.LinAlgError:
+                    beta_train = np.linalg.pinv(XtX_reg) @ X_train.T @ y_train
 
-            # 预测
             try:
                 y_pred = X_test @ beta_train
             except Exception as exc:
                 warnings.append(f"fold {fold_index}: prediction failed ({exc}), skipped")
-                current = stop
                 continue
 
-            # 检查预测值是否有效
             if not np.all(np.isfinite(y_pred)):
                 warnings.append(f"fold {fold_index}: non-finite predictions, skipped")
-                current = stop
                 continue
 
-            # 计算MSE
             mse = np.mean((y_test - y_pred) ** 2)
-            # 检查MSE是否有效
             if np.isfinite(mse):
                 mse_scores.append(float(mse))
             else:
                 warnings.append(f"fold {fold_index}: non-finite MSE, skipped")
         except (np.linalg.LinAlgError, ValueError, ZeroDivisionError) as exc:
-            # 数值/维度/除零问题属于已知降级路径
-            warnings.append(f"fold {fold_index}: numerical issue ({type(exc).__name__}: {exc})")
+            warnings.append(f"fold {fold_index}: {type(exc).__name__}: {exc}")
         except Exception as exc:  # noqa: BLE001 — last-resort guard, still recorded
-            warnings.append(f"fold {fold_index}: unexpected error ({type(exc).__name__}: {exc})")
-
-        current = stop
+            warnings.append(f"fold {fold_index}: unexpected {type(exc).__name__}: {exc}")
 
     if not mse_scores:
         warnings.append("no CV fold produced a finite MSE; cv_score is None")

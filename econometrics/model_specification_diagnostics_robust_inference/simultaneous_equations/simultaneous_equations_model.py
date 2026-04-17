@@ -149,29 +149,36 @@ def two_stage_least_squares(
     if constant:
         instruments_df["const"] = 1.0
 
+    coefficients: list[list[float]] = []
+    std_errors: list[list[float]] = []
+    t_values: list[list[float]] = []
+    p_values: list[list[float]] = []
+    r_squared_vals: list[float] = []
+    adj_r_squared_vals: list[float] = []
+    output_equation_names: list[str] = []
+    endogenous_vars: list[str] = []
+    exogenous_vars: list[str] = []
+    fit_warnings: list[str] = []
+
+    def _append_placeholder(n_params: int) -> None:
+        coefficients.append([0.0] * n_params)
+        std_errors.append([1.0] * n_params)
+        t_values.append([0.0] * n_params)
+        p_values.append([1.0] * n_params)
+        r_squared_vals.append(0.0)
+        adj_r_squared_vals.append(0.0)
+
+    input_equation_names = equation_names  # preserved across fallback path
+    n_indep_cols = len(x_data[0]) if x_data and x_data[0] else 1
+    n_params_placeholder = n_indep_cols + (1 if constant else 0)
+
     try:
-        # 使用linearmodels的IV3SLS
         model = IV3SLS(equation_dicts, instruments=instruments_df)
         results = model.fit()
 
-        # 提取结果 — 避免影子化函数参数 ``equation_names``
-        coefficients = []
-        std_errors = []
-        t_values = []
-        p_values = []
-        r_squared_vals = []
-        adj_r_squared_vals = []
-        output_equation_names: list[str] = []
-        endogenous_vars = []
-        exogenous_vars = []
-        fit_warnings: list[str] = []
-
-        # 遍历每个方程的结果
         for eq_idx, eq_name in enumerate(results.equation_labels):
             output_equation_names.append(eq_name)
-
             try:
-                # 获取系数
                 coeffs = results.params[results.params.index.get_level_values(0) == eq_name].values
                 se = results.std_errors[
                     results.std_errors.index.get_level_values(0) == eq_name
@@ -180,78 +187,48 @@ def two_stage_least_squares(
                 p_vals = results.pvalues[
                     results.pvalues.index.get_level_values(0) == eq_name
                 ].values
-
                 coefficients.append(coeffs.tolist())
                 std_errors.append(se.tolist())
                 t_values.append(t_vals.tolist())
                 p_values.append(p_vals.tolist())
-
-                # R方值 (简化处理)
                 r_squared_vals.append(float(results.rsquared))
                 adj_r_squared_vals.append(float(results.rsquared_adj))
             except Exception as exc:
-                # Fallback values when result extraction for an individual
-                # equation fails. x_data is shared across equations so its
-                # width is the parameter count; +1 if a constant was added.
-                n_params = (len(x_data[0]) if x_data and x_data[0] else 1) + (1 if constant else 0)
-                coefficients.append([0.0] * n_params)
-                std_errors.append([1.0] * n_params)
-                t_values.append([0.0] * n_params)
-                p_values.append([1.0] * n_params)
-                r_squared_vals.append(0.0)
-                adj_r_squared_vals.append(0.0)
+                _append_placeholder(n_params_placeholder)
                 fit_warnings.append(
                     f"equation {eq_idx} ({eq_name}): result extraction failed "
-                    f"({type(exc).__name__}: {exc}); coefficients/SE/t/p/R² are placeholders"
+                    f"({type(exc).__name__}: {exc}); SE/t/p/R² are placeholders"
                 )
 
-        # 提取变量名称
         for _ in range(n_equations):
-            eq_endog = ["dependent"]  # 因变量
-            eq_exog = [f"indep_{j}" for j in range(len(x_data[0]) if x_data else 0)]  # 自变量
-
-            endogenous_vars.extend(eq_endog)
-            exogenous_vars.extend(eq_exog)
+            endogenous_vars.append("dependent")
+            exogenous_vars.extend(f"indep_{j}" for j in range(n_indep_cols))
 
     except Exception as outer_exc:
-        # 如果使用linearmodels失败，回退到手动实现
-        # 这里为了简化，返回默认值 — 同时记录警告并保留输入方程名
-        input_equation_names = equation_names
-        coefficients = []
-        std_errors = []
-        t_values = []
-        p_values = []
-        r_squared_vals = []
-        adj_r_squared_vals = []
-        output_equation_names = []
-        endogenous_vars = []
-        exogenous_vars = []
-        fit_warnings = [
+        # Entire IV3SLS fit failed — reset any partial collections and emit
+        # a single warning; return zero/unit placeholders for all equations.
+        coefficients.clear()
+        std_errors.clear()
+        t_values.clear()
+        p_values.clear()
+        r_squared_vals.clear()
+        adj_r_squared_vals.clear()
+        output_equation_names.clear()
+        endogenous_vars.clear()
+        exogenous_vars.clear()
+        fit_warnings.append(
             f"IV3SLS fit failed entirely ({type(outer_exc).__name__}: {outer_exc}); "
             "all equations returned as zero/unit placeholders — NOT real 3SLS estimates"
-        ]
-
-        # 为每个方程创建默认结果 —— 引用入参方程名（不再被局部变量影子化）
+        )
         for i in range(n_equations):
-            eq_name = (
+            output_equation_names.append(
                 input_equation_names[i]
                 if input_equation_names and i < len(input_equation_names)
                 else f"equation_{i + 1}"
             )
-            output_equation_names.append(eq_name)
-
-            n_params = len(x_data[0]) if x_data and len(x_data) > 0 else 1
-            coefficients.append([0.0] * n_params)
-            std_errors.append([1.0] * n_params)
-            t_values.append([0.0] * n_params)
-            p_values.append([1.0] * n_params)
-            r_squared_vals.append(0.0)
-            adj_r_squared_vals.append(0.0)
-
-            eq_endog = ["dependent"]
-            eq_exog = [f"indep_{j}" for j in range(n_params)]
-            endogenous_vars.extend(eq_endog)
-            exogenous_vars.extend(eq_exog)
+            _append_placeholder(n_indep_cols)
+            endogenous_vars.append("dependent")
+            exogenous_vars.extend(f"indep_{j}" for j in range(n_indep_cols))
 
     return SimultaneousEquationsResult(
         coefficients=coefficients,
