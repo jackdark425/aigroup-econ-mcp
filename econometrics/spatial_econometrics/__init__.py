@@ -10,59 +10,45 @@
 """
 
 # 空间权重矩阵
-from .spatial_weights import (
-    create_spatial_weights,
-    SpatialWeightsResult
-)
+# 地理加权回归
+from .geographically_weighted_regression import GWRResult, geographically_weighted_regression
 
 # 空间自相关检验
 from .spatial_autocorrelation import (
-    morans_i_test,
+    GearysCResult,
+    LocalMoranResult,
+    MoranIResult,
     gearys_c_test,
     local_morans_i,
-    MoranIResult,
-    GearysCResult,
-    LocalMoranResult
-)
-
-# 空间回归模型
-from .spatial_regression import (
-    spatial_lag_model,
-    spatial_error_model,
-    SpatialRegressionResult
+    morans_i_test,
 )
 
 # 空间杜宾模型
-from .spatial_durbin_model import (
-    spatial_durbin_model,
-    SpatialDurbinResult
-)
+from .spatial_durbin_model import SpatialDurbinResult, spatial_durbin_model
 
-# 地理加权回归
-from .geographically_weighted_regression import (
-    geographically_weighted_regression,
-    GWRResult
-)
+# 空间回归模型
+from .spatial_regression import SpatialRegressionResult, spatial_error_model, spatial_lag_model
+from .spatial_weights import SpatialWeightsResult, create_spatial_weights
 
 __all__ = [
     # 空间权重
-    'create_spatial_weights',
-    'SpatialWeightsResult',
+    "create_spatial_weights",
+    "SpatialWeightsResult",
     # 空间自相关
-    'morans_i_test',
-    'gearys_c_test',
-    'local_morans_i',
-    'MoranIResult',
-    'GearysCResult',
-    'LocalMoranResult',
+    "morans_i_test",
+    "gearys_c_test",
+    "local_morans_i",
+    "MoranIResult",
+    "GearysCResult",
+    "LocalMoranResult",
     # 空间回归
-    'spatial_lag_model',
-    'spatial_error_model',
-    'SpatialRegressionResult',
+    "spatial_lag_model",
+    "spatial_error_model",
+    "SpatialRegressionResult",
     # 空间杜宾模型
-    'spatial_durbin_model',
-    'SpatialDurbinResult',
+    "spatial_durbin_model",
+    "SpatialDurbinResult",
     # 地理加权回归
-    'geographically_weighted_regression',
-    'GWRResult'
+    "geographically_weighted_regression",
+    "GWRResult",
 ]

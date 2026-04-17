@@ -2,34 +2,31 @@
 缺失数据处理适配器
 """
 
-from typing import List, Optional
 import json
 
 from econometrics.missing_data import (
-    simple_imputation,
-    multiple_imputation,
+    MultipleImputationResult,
     SimpleImputationResult,
-    MultipleImputationResult
+    multiple_imputation,
+    simple_imputation,
 )
 
 from .output_formatter import OutputFormatter
 
 
 def simple_imputation_adapter(
-    data: List[List[float]],
+    data: list[list[float]],
     strategy: str = "mean",
-    fill_value: Optional[float] = None,
+    fill_value: float | None = None,
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """简单插补适配器"""
-    
+
     result: SimpleImputationResult = simple_imputation(
-        data=data,
-        strategy=strategy,
-        fill_value=fill_value
+        data=data, strategy=strategy, fill_value=fill_value
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:
@@ -44,22 +41,19 @@ def simple_imputation_adapter(
 
 
 def multiple_imputation_adapter(
-    data: List[List[float]],
+    data: list[list[float]],
     n_imputations: int = 5,
     max_iter: int = 10,
-    random_state: Optional[int] = None,
+    random_state: int | None = None,
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """多重插补适配器"""
-    
+
     result: MultipleImputationResult = multiple_imputation(
-        data=data,
-        n_imputations=n_imputations,
-        max_iter=max_iter,
-        random_state=random_state
+        data=data, n_imputations=n_imputations, max_iter=max_iter, random_state=random_state
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:

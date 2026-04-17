@@ -4,22 +4,12 @@
 """
 
 # OLS模块
-from .ols import (
-    OLSResult,
-    ols_regression
-)
+# GMM模块
+from .gmm import GMMResult, gmm_estimation
 
 # MLE模块
-from .mle import (
-    MLEResult,
-    mle_estimation
-)
-
-# GMM模块
-from .gmm import (
-    GMMResult,
-    gmm_estimation
-)
+from .mle import MLEResult, mle_estimation
+from .ols import OLSResult, ols_regression
 
 __all__ = [
     "OLSResult",
@@ -27,5 +17,5 @@ __all__ = [
     "MLEResult",
     "mle_estimation",
     "GMMResult",
-    "gmm_estimation"
+    "gmm_estimation",
 ]

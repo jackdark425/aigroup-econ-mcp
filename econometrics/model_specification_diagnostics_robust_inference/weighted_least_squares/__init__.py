@@ -4,12 +4,6 @@
 WLS方法实现
 """
 
-from .wls_model import (
-    WLSResult,
-    wls_regression
-)
+from .wls_model import WLSResult, wls_regression
 
-__all__ = [
-    "WLSResult",
-    "wls_regression"
-]
+__all__ = ["WLSResult", "wls_regression"]

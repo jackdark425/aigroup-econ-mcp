@@ -249,5 +249,16 @@ exports/
 *.json
 !pyproject.toml
 !README.md
+
 # PyPI configuration with API tokens
 .pypirc
+
+# Local test/debug artifacts - should never be committed
+test_results/
+test_data/
+quick_test.py
+check_pypi_version.py
+clear_uvx_cache.*
+*_FIX_SUMMARY.md
+*_功能列表.md
+*优先级分析.md

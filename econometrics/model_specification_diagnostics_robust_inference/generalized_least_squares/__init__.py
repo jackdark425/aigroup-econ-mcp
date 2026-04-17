@@ -4,12 +4,6 @@
 GLS方法实现
 """
 
-from .gls_model import (
-    GLSResult,
-    gls_regression
-)
+from .gls_model import GLSResult, gls_regression
 
-__all__ = [
-    "GLSResult",
-    "gls_regression"
-]
+__all__ = ["GLSResult", "gls_regression"]

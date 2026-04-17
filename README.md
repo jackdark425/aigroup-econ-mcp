@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-2.0.8-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
+[![Version](https://img.shields.io/badge/version-2.0.9-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
 [![Tools](https://img.shields.io/badge/Tools-66-brightgreen.svg)](https://github.com/jackdark425/aigroup-econ-mcp)
 
 > Econometrics MCP server for regression, causal inference, time series, panel data, machine learning, and broader statistical analysis workflows.
@@ -122,14 +122,27 @@ Typical usage patterns:
 
 ```text
 aigroup-econ-mcp/
-├── econometrics/
-├── tools/
+├── aigroup_econ_mcp/       # MCP server + CLI
+│   ├── cli.py              #   argparse entry point
+│   ├── server.py           #   FastMCP wire-up
+│   ├── registry.py         #   ToolSpec registry
+│   ├── _registrations.py   #   all 66 tools registered here
+│   └── errors.py
+├── tools/                  # adapter layer (I/O + formatting)
+├── econometrics/           # algorithms
 ├── resources/
 ├── prompts/
-├── cli.py
-├── server.py
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── PUBLISHING.md
+│   └── TESTING.md
+├── tests/
+├── CHANGELOG.md
 └── pyproject.toml
 ```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for layer boundaries and how
+to add a new tool.
 
 ## Development
 
@@ -147,20 +160,15 @@ uv run isort .
 
 ## Troubleshooting
 
-### uvx cache issue
+### uvx resolves an old version
 
-If a newer published version does not seem to load, try one of the following:
+`uvx` caches per-version, so if a published release is not picked up:
 
 ```bash
-uvx --no-cache aigroup-econ-mcp
+uvx --refresh aigroup-econ-mcp
+# or
 uv cache clean
 ```
-
-The repository also includes helper scripts such as:
-
-- `clear_uvx_cache.bat`
-- `clear_uvx_cache.sh`
-- `clear_uvx_cache.py`
 
 ## License & Usage
 

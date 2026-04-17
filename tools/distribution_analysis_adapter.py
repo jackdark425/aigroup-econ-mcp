@@ -3,42 +3,36 @@
 将核心算法适配为MCP工具
 """
 
-from typing import List, Optional
 import json
 
 from econometrics.distribution_analysis import (
-    oaxaca_blinder_decomposition,
-    variance_decomposition,
-    time_series_decomposition,
     OaxacaResult,
+    TimeSeriesDecompositionResult,
     VarianceDecompositionResult,
-    TimeSeriesDecompositionResult
+    oaxaca_blinder_decomposition,
+    time_series_decomposition,
+    variance_decomposition,
 )
 
 from .output_formatter import OutputFormatter
 
 
 def oaxaca_blinder_adapter(
-    y_a: List[float],
-    x_a: List[List[float]],
-    y_b: List[float],
-    x_b: List[List[float]],
-    feature_names: Optional[List[str]] = None,
+    y_a: list[float],
+    x_a: list[list[float]],
+    y_b: list[float],
+    x_b: list[list[float]],
+    feature_names: list[str] | None = None,
     weight_matrix: str = "pooled",
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """Oaxaca-Blinder分解适配器"""
-    
+
     result: OaxacaResult = oaxaca_blinder_decomposition(
-        y_a=y_a,
-        x_a=x_a,
-        y_b=y_b,
-        x_b=x_b,
-        feature_names=feature_names,
-        weight_matrix=weight_matrix
+        y_a=y_a, x_a=x_a, y_b=y_b, x_b=x_b, feature_names=feature_names, weight_matrix=weight_matrix
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:
@@ -56,20 +50,18 @@ def oaxaca_blinder_adapter(
 
 
 def variance_decomposition_adapter(
-    values: List[float],
-    groups: List[str],
-    group_names: Optional[List[str]] = None,
+    values: list[float],
+    groups: list[str],
+    group_names: list[str] | None = None,
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """方差分解适配器"""
-    
+
     result: VarianceDecompositionResult = variance_decomposition(
-        values=values,
-        groups=groups,
-        group_names=group_names
+        values=values, groups=groups, group_names=group_names
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:
@@ -87,24 +79,20 @@ def variance_decomposition_adapter(
 
 
 def time_series_decomposition_adapter(
-    data: List[float],
+    data: list[float],
     period: int = 12,
     model: str = "additive",
     method: str = "classical",
     extrapolate_trend: str = "freq",
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """时间序列分解适配器"""
-    
+
     result: TimeSeriesDecompositionResult = time_series_decomposition(
-        data=data,
-        period=period,
-        model=model,
-        method=method,
-        extrapolate_trend=extrapolate_trend
+        data=data, period=period, model=model, method=method, extrapolate_trend=extrapolate_trend
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:

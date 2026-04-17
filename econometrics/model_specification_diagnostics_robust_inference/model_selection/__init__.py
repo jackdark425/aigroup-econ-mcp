@@ -7,12 +7,6 @@
 - 格兰杰因果检验
 """
 
-from .model_selection_model import (
-    ModelSelectionResult,
-    model_selection_criteria
-)
+from .model_selection_model import ModelSelectionResult, model_selection_criteria
 
-__all__ = [
-    "ModelSelectionResult",
-    "model_selection_criteria"
-]
+__all__ = ["ModelSelectionResult", "model_selection_criteria"]

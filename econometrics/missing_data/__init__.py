@@ -4,15 +4,15 @@
 """
 
 from .imputation_methods import (
-    simple_imputation,
-    multiple_imputation,
+    MultipleImputationResult,
     SimpleImputationResult,
-    MultipleImputationResult
+    multiple_imputation,
+    simple_imputation,
 )
 
 __all__ = [
-    'simple_imputation',
-    'multiple_imputation',
-    'SimpleImputationResult',
-    'MultipleImputationResult'
+    "simple_imputation",
+    "multiple_imputation",
+    "SimpleImputationResult",
+    "MultipleImputationResult",
 ]

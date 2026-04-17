@@ -3,36 +3,35 @@
 使用完全简化的生存分析模块，避免lifelines依赖
 """
 
-from typing import List, Optional
 import json
 
 from econometrics.survival_analysis.survival_models import (
+    CoxRegressionResult,
     cox_regression_simple,
-    CoxRegressionResult
 )
 
 from .output_formatter import OutputFormatter
 
 
 def cox_regression_adapter_simple(
-    durations: List[float],
-    event_observed: List[int],
-    covariates: List[List[float]],
-    feature_names: Optional[List[str]] = None,
+    durations: list[float],
+    event_observed: list[int],
+    covariates: list[list[float]],
+    feature_names: list[str] | None = None,
     confidence_level: float = 0.95,
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """Cox回归适配器 - 简化版本"""
-    
+
     result: CoxRegressionResult = cox_regression_simple(
         durations=durations,
         event_observed=event_observed,
         covariates=covariates,
         feature_names=feature_names,
-        confidence_level=confidence_level
+        confidence_level=confidence_level,
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.dict(), ensure_ascii=False, indent=2)
         if save_path:

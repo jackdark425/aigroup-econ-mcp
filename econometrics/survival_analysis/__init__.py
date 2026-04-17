@@ -4,15 +4,15 @@
 """
 
 from .survival_models import (
-    kaplan_meier_estimation_simple,
-    cox_regression_simple,
+    CoxRegressionResult,
     KaplanMeierResult,
-    CoxRegressionResult
+    cox_regression_simple,
+    kaplan_meier_estimation_simple,
 )
 
 __all__ = [
-    'kaplan_meier_estimation_simple',
-    'cox_regression_simple',
-    'KaplanMeierResult',
-    'CoxRegressionResult'
+    "kaplan_meier_estimation_simple",
+    "cox_regression_simple",
+    "KaplanMeierResult",
+    "CoxRegressionResult",
 ]

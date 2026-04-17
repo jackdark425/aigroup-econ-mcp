@@ -25,45 +25,18 @@
 """
 
 # 导入子模块
-from .robust_errors import (
-    RobustErrorsResult,
-    robust_errors_regression
-)
-
-from .diagnostic_tests import (
-    DiagnosticTestsResult,
-    diagnostic_tests
-)
-
-from .model_selection import (
-    ModelSelectionResult,
-    model_selection_criteria
-)
-
-from .generalized_least_squares import (
-    GLSResult,
-    gls_regression
-)
-
-from .weighted_least_squares import (
-    WLSResult,
-    wls_regression
-)
-
-from .regularization import (
-    RegularizationResult,
-    regularized_regression
-)
-
-from .simultaneous_equations import (
-    SimultaneousEquationsResult,
-    two_stage_least_squares
-)
+from .diagnostic_tests import DiagnosticTestsResult, diagnostic_tests
+from .generalized_least_squares import GLSResult, gls_regression
+from .model_selection import ModelSelectionResult, model_selection_criteria
+from .regularization import RegularizationResult, regularized_regression
+from .robust_errors import RobustErrorsResult, robust_errors_regression
+from .simultaneous_equations import SimultaneousEquationsResult, two_stage_least_squares
+from .weighted_least_squares import WLSResult, wls_regression
 
 __all__ = [
     "RobustErrorsResult",
     "robust_errors_regression",
-    "DiagnosticTestsResult", 
+    "DiagnosticTestsResult",
     "diagnostic_tests",
     "ModelSelectionResult",
     "model_selection_criteria",
@@ -74,5 +47,5 @@ __all__ = [
     "RegularizationResult",
     "regularized_regression",
     "SimultaneousEquationsResult",
-    "two_stage_least_squares"
+    "two_stage_least_squares",
 ]

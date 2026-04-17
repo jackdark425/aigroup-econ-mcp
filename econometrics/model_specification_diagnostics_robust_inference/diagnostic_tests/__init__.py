@@ -9,12 +9,6 @@
 - 内生性检验（Durbin-Wu-Hausman）
 """
 
-from .diagnostic_tests_model import (
-    DiagnosticTestsResult,
-    diagnostic_tests
-)
+from .diagnostic_tests_model import DiagnosticTestsResult, diagnostic_tests
 
-__all__ = [
-    "DiagnosticTestsResult",
-    "diagnostic_tests"
-]
+__all__ = ["DiagnosticTestsResult", "diagnostic_tests"]

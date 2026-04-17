@@ -3,31 +3,29 @@
 避免复杂的类型转换问题
 """
 
-from typing import List, Optional, Tuple
 import json
-from pathlib import Path
 
 from econometrics.spatial_econometrics.gwr_simple import (
+    GWRSimpleResult,
     geographically_weighted_regression_simple,
-    GWRSimpleResult
 )
 
 from .output_formatter import OutputFormatter
 
 
 def gwr_simple_adapter(
-    y_data: List[float],
-    x_data: List[List[float]],
-    coordinates: List[Tuple[float, float]],
-    feature_names: Optional[List[str]] = None,
+    y_data: list[float],
+    x_data: list[list[float]],
+    coordinates: list[tuple[float, float]],
+    feature_names: list[str] | None = None,
     kernel_type: str = "gaussian",
-    bandwidth: Optional[float] = None,
+    bandwidth: float | None = None,
     fixed: bool = False,
     output_format: str = "json",
-    save_path: Optional[str] = None
+    save_path: str | None = None,
 ) -> str:
     """简化的地理加权回归适配器"""
-    
+
     result: GWRSimpleResult = geographically_weighted_regression_simple(
         y_data=y_data,
         x_data=x_data,
@@ -35,9 +33,9 @@ def gwr_simple_adapter(
         feature_names=feature_names,
         kernel_type=kernel_type,
         bandwidth=bandwidth,
-        fixed=fixed
+        fixed=fixed,
     )
-    
+
     if output_format == "json":
         json_result = json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
         if save_path:

@@ -3,33 +3,18 @@
 放宽函数形式的线性或参数化假设
 """
 
-from .kernel_regression import (
-    kernel_regression,
-    KernelRegressionResult
-)
-
-from .quantile_regression import (
-    quantile_regression,
-    QuantileRegressionResult
-)
-
-from .spline_regression import (
-    spline_regression,
-    SplineRegressionResult
-)
-
-from .gam_model import (
-    gam_model,
-    GAMResult
-)
+from .gam_model import GAMResult, gam_model
+from .kernel_regression import KernelRegressionResult, kernel_regression
+from .quantile_regression import QuantileRegressionResult, quantile_regression
+from .spline_regression import SplineRegressionResult, spline_regression
 
 __all__ = [
-    'kernel_regression',
-    'KernelRegressionResult',
-    'quantile_regression',
-    'QuantileRegressionResult',
-    'spline_regression',
-    'SplineRegressionResult',
-    'gam_model',
-    'GAMResult'
+    "kernel_regression",
+    "KernelRegressionResult",
+    "quantile_regression",
+    "QuantileRegressionResult",
+    "spline_regression",
+    "SplineRegressionResult",
+    "gam_model",
+    "GAMResult",
 ]
