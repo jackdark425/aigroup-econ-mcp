@@ -226,15 +226,19 @@ to add a new tool.
 
 ```bash
 uv sync
-uv run pytest
+uv run pytest           # full suite, ~12 s (271 tests)
+uv run pytest -m "not slow"   # fast iteration, ~1.5 s (264 tests)
+uv run ruff check .
+uv run ruff format .
 ```
 
-Useful development commands:
-
-```bash
-uv run black .
-uv run isort .
-```
+All 66 registered tools are covered by a four-tier test pyramid:
+registration-shape → smoke → mathematical-correctness (known-DGP) →
+real MCP stdio protocol. See [`docs/VERIFICATION.md`](docs/VERIFICATION.md)
+for the testing paradigm, ground-truth DGPs, tolerance rationale, and
+the record of real bugs this approach has surfaced (9 to date). See
+[`docs/TESTING.md`](docs/TESTING.md) for quick-run commands and the
+test-file layout.
 
 ## Troubleshooting
 

@@ -1,7 +1,8 @@
-# Testing
+# Testing — quick reference
 
-The repo has 121 tests across six files, split between fast in-process checks
-and slow subprocess-based MCP-protocol checks.
+How to run the suite. For the **testing paradigm** — which tier catches
+which class of bug, what ground truth we demand, the bug-finding record
+— see [`VERIFICATION.md`](VERIFICATION.md).
 
 ## Run the fast suite (dev iteration)
 
@@ -9,7 +10,7 @@ and slow subprocess-based MCP-protocol checks.
 uv run pytest -m "not slow"
 ```
 
-~1.3s, 114 tests. Skips the subprocess spawn tests in
+~1.5 s, **264 tests**. Skips the subprocess spawn tests in
 `tests/test_mcp_protocol.py`.
 
 ## Run everything (CI)
@@ -18,15 +19,18 @@ uv run pytest -m "not slow"
 uv run pytest
 ```
 
-~12s, 121 tests. CI runs this on every push and PR.
+~12 s, **271 tests** (+ 1 pygam skip). CI runs this on every push and PR.
 
 ## Test layout
 
 | File | Count | What it covers |
 |------|------:|----------------|
 | `tests/test_registry.py` | 6 | Registration shape invariants |
-| `tests/test_e2e_tools.py` | 36 | In-process tool invocations across all 11 groups |
 | `tests/test_manifest.py` | 72 | Static manifest validation (6 global + 66 per-tool) |
+| `tests/test_all_tools_smoke.py` | 67 | Every tool invoked with minimal input; coverage guard |
+| `tests/test_e2e_tools.py` | 40 | In-process tool invocations across all 11 groups |
+| `tests/test_correctness.py` | 70 | Mathematical ground-truth recovery for every tool |
+| `tests/test_fit_warnings.py` | 9 | Silent-fallback result models surface `fit_warnings` |
 | `tests/test_guide.py` | 6 | Dynamic `guide://econometrics` resource content |
 | `tests/test_startup_perf.py` | 2 | Cold `build_server()` and subprocess handshake latency |
 | `tests/test_mcp_protocol.py` | 6 *(slow)* | Real JSON-RPC over stdio via the MCP client SDK |
@@ -78,6 +82,11 @@ Any tool failure will then emit:
 ```json
 {"ok": false, "error": {"code": "...", "message": "...", "details": {}, "traceback": "..."}}
 ```
+
+## Adding a new tool
+
+See [`VERIFICATION.md` § Adding a new tool](VERIFICATION.md#adding-a-new-tool)
+for the three tests you owe and the local-verify command.
 
 ## CI
 
