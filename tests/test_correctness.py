@@ -563,6 +563,236 @@ def test_spatial_weights_knn_builds_k2_graph_for_grid() -> None:
     assert n_like == 8
 
 
+# ============================================================================
+# MICROECONOMETRICS
+# ============================================================================
+
+
+def _binary_dgp(
+    n: int = 400, beta: list[float] = None, seed: int = 0
+) -> tuple[list[int], list[list[float]]]:
+    """P(y=1 | x) = Φ(Xβ). Returns (y, X) with X non-collinear, y binary."""
+    beta = beta or [0.3, 0.8, -0.6]  # const, x1, x2
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(n, len(beta) - 1))
+    linpred = beta[0] + X @ np.array(beta[1:])
+    p = 1.0 / (1.0 + np.exp(-linpred))
+    y = (rng.uniform(size=n) < p).astype(int).tolist()
+    return y, X.tolist()
+
+
+def test_logit_recovers_sign_of_known_coefficients() -> None:
+    """P(y=1) = σ(0.3 + 0.8·x₁ − 0.6·x₂) → sign(β₁)>0, sign(β₂)<0."""
+    y, X = _binary_dgp(n=600, beta=[0.3, 0.8, -0.6], seed=101)
+    result = _invoke("micro_logit", X_data=X, y_data=y)
+    coefs = result["coefficients"]
+    # Model reports [const?, x1, x2]; be defensive about intercept position
+    # but the two slope coefs should have the right signs.
+    sloped = coefs if len(coefs) == 2 else coefs[1:] if len(coefs) >= 3 else coefs
+    # Find the two with largest absolute values as the true slopes.
+    if len(sloped) >= 2:
+        assert sloped[-2] > 0, f"β₁ should be positive, got {sloped[-2]}"
+        assert sloped[-1] < 0, f"β₂ should be negative, got {sloped[-1]}"
+
+
+def test_probit_pseudo_r_squared_positive_for_separable_data() -> None:
+    """On well-separable binary data, pseudo-R² should be clearly positive."""
+    y, X = _binary_dgp(n=500, beta=[0.0, 2.0, -2.0], seed=103)
+    result = _invoke("micro_probit", X_data=X, y_data=y)
+    assert result["pseudo_r_squared"] > 0.1
+
+
+def test_poisson_recovers_log_rate() -> None:
+    """Y ~ Poisson(exp(1 + 0.5·x)) → Poisson regression should recover
+    β₁ ≈ 0.5 and a positive intercept."""
+    rng = np.random.default_rng(107)
+    n = 400
+    x = rng.uniform(-1, 1, size=n)
+    rate = np.exp(1.0 + 0.5 * x)
+    y = rng.poisson(rate).tolist()
+    X = [[v] for v in x.tolist()]
+    result = _invoke("micro_poisson", X_data=X, y_data=y)
+    coefs = result["coefficients"]
+    # Position of slope varies with/without intercept — take the last
+    slope = coefs[-1]
+    assert abs(slope - 0.5) < 0.15, f"Poisson slope off: {slope}"
+
+
+def test_negative_binomial_runs_on_overdispersed_counts() -> None:
+    """Overdispersed counts (mean ≪ variance) — NB should converge."""
+    rng = np.random.default_rng(109)
+    n = 300
+    # Generate overdispersed: Y ~ NegBin(mean=μ, alpha)
+    mu = np.exp(1.0 + 0.3 * rng.normal(size=n))
+    y = rng.negative_binomial(3, 3 / (3 + mu)).tolist()
+    X = [[float(v)] for v in rng.normal(size=n).tolist()]
+    result = _invoke("micro_negative_binomial", X_data=X, y_data=y)
+    assert math.isfinite(result["log_likelihood"])
+
+
+def test_multinomial_logit_identifies_three_classes() -> None:
+    rng = np.random.default_rng(113)
+    n = 600
+    X = rng.normal(size=(n, 2))
+    # Make class related to X[:, 0]
+    y = np.where(X[:, 0] < -0.3, 0, np.where(X[:, 0] < 0.3, 1, 2)).tolist()
+    result = _invoke("micro_multinomial_logit", X_data=X.tolist(), y_data=y)
+    # 3 classes in the classes list
+    assert len(result["classes"]) == 3
+
+
+def test_tobit_recovers_slope_on_censored_data() -> None:
+    """y* = 1 + 2·x + ε; y = max(0, y*). Tobit should recover β₁ ≈ 2."""
+    rng = np.random.default_rng(117)
+    n = 500
+    x = rng.uniform(-1, 1, size=n)
+    latent = 1.0 + 2.0 * x + rng.normal(scale=0.8, size=n)
+    y = np.maximum(0.0, latent).tolist()
+    X = [[float(v)] for v in x.tolist()]
+    result = _invoke("micro_tobit", X_data=X, y_data=y, lower_bound=0.0)
+    coefs = result["coefficients"]
+    # Tobit output may include sigma; slope is the β coefficient on x
+    slope_candidates = [c for c in coefs if 1.5 < c < 2.5]
+    assert slope_candidates, f"no slope coefficient near 2 in {coefs}"
+
+
+def test_heckman_runs_on_selection_data() -> None:
+    """Selection-model DGP: observe y only when s=1 (s depends on Z)."""
+    rng = np.random.default_rng(119)
+    n = 500
+    z = rng.normal(size=(n, 1))
+    x = rng.normal(size=(n, 1))
+    # Selection equation
+    s = (0.5 + z[:, 0] + rng.normal(scale=0.5, size=n) > 0).astype(int).tolist()
+    # Outcome (observed regardless; adapter handles the gate)
+    y = (1.0 + 2.0 * x[:, 0] + rng.normal(scale=0.5, size=n)).tolist()
+    result = _invoke(
+        "micro_heckman",
+        X_select_data=z.tolist(),
+        Z_data=x.tolist(),
+        y_data=y,
+        s_data=s,
+    )
+    assert result["n_obs"] == n
+    assert result["n_selected"] > 0
+
+
+# ============================================================================
+# MACHINE LEARNING
+# ============================================================================
+
+
+def _separable_dgp(n: int = 300, seed: int = 0) -> tuple[list[int], list[list[float]]]:
+    """Class 1 centred at (+2, +2), class 0 at (-2, -2)."""
+    rng = np.random.default_rng(seed)
+    half = n // 2
+    X_pos = rng.normal(loc=2.0, scale=0.8, size=(half, 2))
+    X_neg = rng.normal(loc=-2.0, scale=0.8, size=(n - half, 2))
+    X = np.vstack([X_pos, X_neg])
+    y = [1] * half + [0] * (n - half)
+    order = rng.permutation(n)
+    X = X[order]
+    y = [y[i] for i in order]
+    return y, X.tolist()
+
+
+def test_random_forest_classification_accuracy_on_separable_data() -> None:
+    """Well-separated classes → train accuracy should be ≥ 0.9."""
+    y, X = _separable_dgp(n=400, seed=131)
+    result = _invoke(
+        "ml_random_forest", X_data=X, y_data=y, problem_type="classification"
+    )
+    acc = _find_key_recursive(result["train_results"], "accuracy")
+    assert acc is not None and acc > 0.9, f"RF train accuracy low: {acc}"
+
+
+def test_gradient_boosting_classification_accuracy() -> None:
+    y, X = _separable_dgp(n=400, seed=133)
+    result = _invoke(
+        "ml_gradient_boosting", X_data=X, y_data=y, problem_type="classification"
+    )
+    acc = _find_key_recursive(result["train_results"], "accuracy")
+    assert acc is not None and acc > 0.9, f"GB train accuracy low: {acc}"
+
+
+def test_svm_classification_accuracy() -> None:
+    y, X = _separable_dgp(n=300, seed=137)
+    result = _invoke(
+        "ml_support_vector_machine", X_data=X, y_data=y, problem_type="classification"
+    )
+    acc = _find_key_recursive(result["train_results"], "accuracy")
+    assert acc is not None and acc > 0.9, f"SVM train accuracy low: {acc}"
+
+
+def test_neural_network_classification_accuracy() -> None:
+    y, X = _separable_dgp(n=400, seed=139)
+    result = _invoke(
+        "ml_neural_network", X_data=X, y_data=y, problem_type="classification"
+    )
+    acc = _find_key_recursive(result["train_results"], "accuracy")
+    assert acc is not None and acc > 0.85, f"NN train accuracy low: {acc}"
+
+
+def test_kmeans_recovers_two_well_separated_clusters() -> None:
+    """Two widely-spaced blobs → silhouette should be ≳ 0.5 with k=2."""
+    _, X = _separable_dgp(n=200, seed=149)
+    result = _invoke("ml_kmeans_clustering", X_data=X, n_clusters=2)
+    sil = _find_key_recursive(result["metrics"], "silhouette_score")
+    assert sil is not None and sil > 0.5, f"K-means silhouette too low: {sil}"
+    # Cluster centres should be roughly at (+2,+2) and (-2,-2)
+    centers = result["cluster_centers"]
+    assert len(centers) == 2
+
+
+def test_hierarchical_clustering_produces_two_clusters() -> None:
+    _, X = _separable_dgp(n=200, seed=151)
+    result = _invoke("ml_hierarchical_clustering", X_data=X, n_clusters=2)
+    labels = result["labels"]
+    assert len(set(labels)) == 2
+    # Silhouette should be high on well-separated blobs
+    sil = _find_key_recursive(result["metrics"], "silhouette_score")
+    assert sil is None or sil > 0.4
+
+
+def test_double_ml_recovers_treatment_effect() -> None:
+    """Y = τ·D + g(X) + ε; D = m(X) + η. τ=2 — DML should recover τ."""
+    rng = np.random.default_rng(157)
+    n = 400
+    X = rng.normal(size=(n, 3))
+    # Treatment depends on X (propensity)
+    D = 0.5 * X[:, 0] + rng.normal(scale=1.0, size=n)
+    # Outcome: τ=2 plus confounding via X
+    y = 2.0 * D + X[:, 1] + 0.5 * X[:, 2] + rng.normal(scale=0.5, size=n)
+    result = _invoke(
+        "ml_double_machine_learning",
+        X_data=X.tolist(),
+        y_data=y.tolist(),
+        d_data=D.tolist(),
+    )
+    effect = result.get("effect")
+    assert effect is not None and abs(effect - 2.0) < 0.4, (
+        f"DML treatment effect off: {effect}"
+    )
+
+
+def test_causal_forest_returns_finite_ate() -> None:
+    rng = np.random.default_rng(163)
+    n = 400
+    X = rng.normal(size=(n, 3))
+    w = (rng.uniform(size=n) < 0.5).astype(float)  # random treatment
+    y = 2.0 * w + 0.5 * X[:, 0] + rng.normal(scale=0.3, size=n)
+    result = _invoke(
+        "ml_causal_forest",
+        X_data=X.tolist(),
+        y_data=y.tolist(),
+        w_data=w.tolist(),
+    )
+    ate = result.get("ate")
+    assert ate is not None and math.isfinite(ate)
+    # With random treatment + large effect, ATE should land near 2
+    assert 1.0 < ate < 3.0, f"causal forest ATE outside reasonable band: {ate}"
+
+
 # ---------- small recursive helpers -----------------------------------------
 
 

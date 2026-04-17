@@ -39,7 +39,8 @@ def _x_1d(n: int = 12) -> list[list[float]]:
 
 
 def _x_2d(n: int = 12) -> list[list[float]]:
-    return [[float(i), float(i * 2)] for i in range(1, n + 1)]
+    """Two numerically independent regressors — avoids perfect collinearity."""
+    return [[float(i), float(i % 3) + 0.1 * float(i)] for i in range(1, n + 1)]
 
 
 def _series(n: int = 30) -> list[float]:
@@ -214,12 +215,12 @@ def _fixtures() -> dict[str, dict[str, Any]]:
         "ml_double_machine_learning": {
             "X_data": _x_2d(30),
             "y_data": _y(30),
-            "treatment_data": [float(i % 2) for i in range(30)],
+            "d_data": [float(i % 2) for i in range(30)],  # treatment → d_data
         },
         "ml_causal_forest": {
             "X_data": _x_2d(30),
             "y_data": _y(30),
-            "treatment_data": [float(i % 2) for i in range(30)],
+            "w_data": [float(i % 2) for i in range(30)],  # treatment → w_data
         },
         # --- microeconometrics ----------------------------------------------
         "micro_logit": {"X_data": _x_2d(20), "y_data": _binary_y(20)},
