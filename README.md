@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jackdark425-aigroup-econ-mcp-badge.png)](https://mseep.ai/app/jackdark425-aigroup-econ-mcp)
+
 # aigroup-econ-mcp
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
